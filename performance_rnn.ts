@@ -102,10 +102,8 @@ const keyboardInterface = new KeyboardElement(container);
 
 const piano = new Piano({velocities: 4}).toMaster();
 
-const SALAMANDER_URL = 'https://storage.googleapis.com/' +
-    'download.magenta.tensorflow.org/demos/SalamanderPiano/';
-const CHECKPOINT_URL = 'https://storage.googleapis.com/' +
-    'download.magenta.tensorflow.org/models/performance_rnn/tfjs';
+const SALAMANDER_URL = '/soundfonts/salamander-piano/';
+const CHECKPOINT_URL = '/checkpoints/performance-rnn-tfjs';
 
 const isDeviceSupported = tf.ENV.get('WEBGL_VERSION') >= 1;
 

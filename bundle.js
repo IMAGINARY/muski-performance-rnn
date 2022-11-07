@@ -37772,10 +37772,8 @@ var lastSample = tf.scalar(PRIMER_IDX, 'int32');
 var container = document.querySelector('#keyboard');
 var keyboardInterface = new keyboard_element_1.KeyboardElement(container);
 var piano = new Piano({ velocities: 4 }).toMaster();
-var SALAMANDER_URL = 'https://storage.googleapis.com/' +
-    'download.magenta.tensorflow.org/demos/SalamanderPiano/';
-var CHECKPOINT_URL = 'https://storage.googleapis.com/' +
-    'download.magenta.tensorflow.org/models/performance_rnn/tfjs';
+var SALAMANDER_URL = '/soundfonts/salamander-piano/';
+var CHECKPOINT_URL = '/checkpoints/performance-rnn-tfjs';
 var isDeviceSupported = tf.ENV.get('WEBGL_VERSION') >= 1;
 if (!isDeviceSupported) {
     document.querySelector('#status').innerHTML =
