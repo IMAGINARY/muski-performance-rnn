@@ -37862,37 +37862,6 @@ var pitchHistogramElements = notes.map(function (note) { return document.getElem
 var histogramDisplayElements = notes.map(function (note) { return document.getElementById('hist-' + note); });
 var preset1 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
 var preset2 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
-try {
-    parseHash();
-}
-catch (e) {
-    console.warn(e);
-}
-function parseHash() {
-    if (!window.location.hash) {
-        return;
-    }
-    var params = window.location.hash.substr(1).split('|');
-    densityControl.value = params[0];
-    var pitches = params[1].split(',');
-    for (var i = 0; i < pitchHistogramElements.length; i++) {
-        pitchHistogramElements[i].value = pitches[i];
-    }
-    var preset1Values = params[2].split(',');
-    for (var i = 0; i < preset1.length; i++) {
-        preset1[i] = parseInt(preset1Values[i], 10);
-    }
-    var preset2Values = params[3].split(',');
-    for (var i = 0; i < preset2.length; i++) {
-        preset2[i] = parseInt(preset2Values[i], 10);
-    }
-    if (params[4] === 'true') {
-        enableConditioning();
-    }
-    else if (params[4] === 'false') {
-        disableConditioning();
-    }
-}
 function enableConditioning() {
     conditioned = true;
     conditioningOffElem.checked = false;
@@ -37918,9 +37887,6 @@ function updateConditioningParams() {
         noteDensityEncoding.dispose();
         noteDensityEncoding = null;
     }
-    window.location.assign('#' + densityControl.value + '|' + pitchHistogram.join(',') + '|' +
-        preset1.join(',') + '|' + preset2.join(',') + '|' +
-        (conditioned ? 'true' : 'false'));
     var noteDensityIdx = parseInt(densityControl.value, 10) || 0;
     var noteDensity = DENSITY_BIN_RANGES[noteDensityIdx];
     densityDisplay.innerHTML = noteDensity.toString();
@@ -38120,7 +38086,8 @@ var activeMidiInputDevice = null;
                 });
                 setActiveMidiInputDevice_1 = function (device) {
                     if (activeMidiInputDevice != null) {
-                        activeMidiInputDevice.onmidimessage = function () { };
+                        activeMidiInputDevice.onmidimessage = function () {
+                        };
                     }
                     activeMidiInputDevice = device;
                     device.onmidimessage = function (event) {

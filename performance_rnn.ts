@@ -31,8 +31,8 @@ let fcW: tf.Tensor2D;
 const forgetBias = tf.scalar(1.0);
 const activeNotes = new Map<number, number>();
 
-let stepTimeout : NodeJS.Timer = null;
-let resetTimeout : NodeJS.Timer = null;
+let stepTimeout: NodeJS.Timer = null;
+let resetTimeout: NodeJS.Timer = null;
 
 // How many steps to generate per generateStep call.
 // Generating more steps makes it less likely that we'll lag behind in note
@@ -80,20 +80,20 @@ const MID_IN_CHORD_RESET_THRESHOLD_MS = 1000;
 let currentLoopId = 0;
 
 const EVENT_RANGES = [
-  ['note_on', MIN_MIDI_PITCH, MAX_MIDI_PITCH],
-  ['note_off', MIN_MIDI_PITCH, MAX_MIDI_PITCH],
-  ['time_shift', 1, MAX_SHIFT_STEPS],
-  ['velocity_change', 1, VELOCITY_BINS],
+    ['note_on', MIN_MIDI_PITCH, MAX_MIDI_PITCH],
+    ['note_off', MIN_MIDI_PITCH, MAX_MIDI_PITCH],
+    ['time_shift', 1, MAX_SHIFT_STEPS],
+    ['velocity_change', 1, VELOCITY_BINS],
 ];
 
 function calculateEventSize(): number {
-  let eventOffset = 0;
-  for (const eventRange of EVENT_RANGES) {
-    const minValue = eventRange[1] as number;
-    const maxValue = eventRange[2] as number;
-    eventOffset += maxValue - minValue + 1;
-  }
-  return eventOffset;
+    let eventOffset = 0;
+    for (const eventRange of EVENT_RANGES) {
+        const minValue = eventRange[1] as number;
+        const maxValue = eventRange[2] as number;
+        eventOffset += maxValue - minValue + 1;
+    }
+    return eventOffset;
 }
 
 const EVENT_SIZE = calculateEventSize();
@@ -111,11 +111,11 @@ const CHECKPOINT_URL = '/checkpoints/performance-rnn-tfjs';
 const isDeviceSupported = tf.ENV.get('WEBGL_VERSION') >= 1;
 
 if (!isDeviceSupported) {
-  document.querySelector('#status').innerHTML =
-      'We do not yet support your device. Please try on a desktop ' +
-      'computer with Chrome/Firefox, or an Android phone with WebGL support.';
+    document.querySelector('#status').innerHTML =
+        'We do not yet support your device. Please try on a desktop ' +
+        'computer with Chrome/Firefox, or an Android phone with WebGL support.';
 } else {
-  start();
+    start();
 }
 
 let modelReady = false;
@@ -124,69 +124,69 @@ let modelRunning = false;
 let startButton = document.querySelector('#start-pause-button') as HTMLButtonElement;
 
 function start() {
-  piano.load(SALAMANDER_URL)
-      .then(() => {
-        return fetch(`${CHECKPOINT_URL}/weights_manifest.json`)
-                     .then((response) => response.json())
-                     .then(
-                         (manifest: tf.WeightsManifestConfig) =>
-                             tf.loadWeights(manifest, CHECKPOINT_URL));
-      })
-      .then((vars: {[varName: string]: tf.Tensor}) => {
-        document.querySelector('#status').classList.add('hidden');
-        document.querySelector('#controls').classList.remove('hidden');
-        document.querySelector('#keyboard').classList.remove('hidden');
+    piano.load(SALAMANDER_URL)
+        .then(() => {
+            return fetch(`${CHECKPOINT_URL}/weights_manifest.json`)
+                .then((response) => response.json())
+                .then(
+                    (manifest: tf.WeightsManifestConfig) =>
+                        tf.loadWeights(manifest, CHECKPOINT_URL));
+        })
+        .then((vars: { [varName: string]: tf.Tensor }) => {
+            document.querySelector('#status').classList.add('hidden');
+            document.querySelector('#controls').classList.remove('hidden');
+            document.querySelector('#keyboard').classList.remove('hidden');
 
-        lstmKernel1 =
-            vars['rnn/multi_rnn_cell/cell_0/basic_lstm_cell/kernel'] as
-            tf.Tensor2D;
-        lstmBias1 = vars['rnn/multi_rnn_cell/cell_0/basic_lstm_cell/bias'] as
-            tf.Tensor1D;
+            lstmKernel1 =
+                vars['rnn/multi_rnn_cell/cell_0/basic_lstm_cell/kernel'] as
+                    tf.Tensor2D;
+            lstmBias1 = vars['rnn/multi_rnn_cell/cell_0/basic_lstm_cell/bias'] as
+                tf.Tensor1D;
 
-        lstmKernel2 =
-            vars['rnn/multi_rnn_cell/cell_1/basic_lstm_cell/kernel'] as
-            tf.Tensor2D;
-        lstmBias2 = vars['rnn/multi_rnn_cell/cell_1/basic_lstm_cell/bias'] as
-            tf.Tensor1D;
+            lstmKernel2 =
+                vars['rnn/multi_rnn_cell/cell_1/basic_lstm_cell/kernel'] as
+                    tf.Tensor2D;
+            lstmBias2 = vars['rnn/multi_rnn_cell/cell_1/basic_lstm_cell/bias'] as
+                tf.Tensor1D;
 
-        lstmKernel3 =
-            vars['rnn/multi_rnn_cell/cell_2/basic_lstm_cell/kernel'] as
-            tf.Tensor2D;
-        lstmBias3 = vars['rnn/multi_rnn_cell/cell_2/basic_lstm_cell/bias'] as
-            tf.Tensor1D;
+            lstmKernel3 =
+                vars['rnn/multi_rnn_cell/cell_2/basic_lstm_cell/kernel'] as
+                    tf.Tensor2D;
+            lstmBias3 = vars['rnn/multi_rnn_cell/cell_2/basic_lstm_cell/bias'] as
+                tf.Tensor1D;
 
-        fcB = vars['fully_connected/biases'] as tf.Tensor1D;
-        fcW = vars['fully_connected/weights'] as tf.Tensor2D;
-        modelReady = true;
-        enableResumeButton();
-      });
+            fcB = vars['fully_connected/biases'] as tf.Tensor1D;
+            fcW = vars['fully_connected/weights'] as tf.Tensor2D;
+            modelReady = true;
+            enableResumeButton();
+        });
 }
 
 function resetRnn() {
-  c = [
-    tf.zeros([1, lstmBias1.shape[0] / 4]),
-    tf.zeros([1, lstmBias2.shape[0] / 4]),
-    tf.zeros([1, lstmBias3.shape[0] / 4]),
-  ];
-  h = [
-    tf.zeros([1, lstmBias1.shape[0] / 4]),
-    tf.zeros([1, lstmBias2.shape[0] / 4]),
-    tf.zeros([1, lstmBias3.shape[0] / 4]),
-  ];
-  if (lastSample != null) {
-    lastSample.dispose();
-  }
-  lastSample = tf.scalar(PRIMER_IDX, 'int32');
-  currentPianoTimeSec = piano.now();
-  pianoStartTimestampMs = performance.now() - currentPianoTimeSec * 1000;
-  currentLoopId++;
-  generateStep(currentLoopId);
+    c = [
+        tf.zeros([1, lstmBias1.shape[0] / 4]),
+        tf.zeros([1, lstmBias2.shape[0] / 4]),
+        tf.zeros([1, lstmBias3.shape[0] / 4]),
+    ];
+    h = [
+        tf.zeros([1, lstmBias1.shape[0] / 4]),
+        tf.zeros([1, lstmBias2.shape[0] / 4]),
+        tf.zeros([1, lstmBias3.shape[0] / 4]),
+    ];
+    if (lastSample != null) {
+        lastSample.dispose();
+    }
+    lastSample = tf.scalar(PRIMER_IDX, 'int32');
+    currentPianoTimeSec = piano.now();
+    pianoStartTimestampMs = performance.now() - currentPianoTimeSec * 1000;
+    currentLoopId++;
+    generateStep(currentLoopId);
 }
 
 window.addEventListener('resize', resize);
 
 function resize() {
-  keyboardInterface.resize();
+    keyboardInterface.resize();
 }
 
 resize();
@@ -211,8 +211,8 @@ const gainDisplayElement =
 let globalGain = +gainSliderElement.value;
 gainDisplayElement.innerText = globalGain.toString();
 gainSliderElement.addEventListener('input', () => {
-  globalGain = +gainSliderElement.value;
-  gainDisplayElement.innerText = globalGain.toString();
+    globalGain = +gainSliderElement.value;
+    gainDisplayElement.innerText = globalGain.toString();
 });
 
 const notes = ['c', 'cs', 'd', 'ds', 'e', 'f', 'fs', 'g', 'gs', 'a', 'as', 'b'];
@@ -225,256 +225,220 @@ const histogramDisplayElements = notes.map(
 let preset1 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
 let preset2 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
 
-try {
-  parseHash();
-} catch (e) {
-  // If we didn't successfully parse the hash, we can just use defaults.
-  console.warn(e);
-}
-
-function parseHash() {
-  if (!window.location.hash) {
-    return;
-  }
-  const params = window.location.hash.substr(1).split('|');
-  densityControl.value = params[0];
-  const pitches = params[1].split(',');
-  for (let i = 0; i < pitchHistogramElements.length; i++) {
-    pitchHistogramElements[i].value = pitches[i];
-  }
-  const preset1Values = params[2].split(',');
-  for (let i = 0; i < preset1.length; i++) {
-    preset1[i] = parseInt(preset1Values[i], 10);
-  }
-  const preset2Values = params[3].split(',');
-  for (let i = 0; i < preset2.length; i++) {
-    preset2[i] = parseInt(preset2Values[i], 10);
-  }
-  if (params[4] === 'true') {
-    enableConditioning();
-
-  } else if (params[4] === 'false') {
-    disableConditioning();
-  }
-}
-
 function enableConditioning() {
-  conditioned = true;
-  conditioningOffElem.checked = false;
-  conditioningOnElem.checked = true;
+    conditioned = true;
+    conditioningOffElem.checked = false;
+    conditioningOnElem.checked = true;
 
-  conditioningControlsElem.classList.remove('inactive');
-  conditioningControlsElem.classList.remove('midicondition');
+    conditioningControlsElem.classList.remove('inactive');
+    conditioningControlsElem.classList.remove('midicondition');
 
-  updateConditioningParams();
+    updateConditioningParams();
 }
+
 function disableConditioning() {
-  conditioned = false;
-  conditioningOffElem.checked = true;
-  conditioningOnElem.checked = false;
+    conditioned = false;
+    conditioningOffElem.checked = true;
+    conditioningOnElem.checked = false;
 
-  conditioningControlsElem.classList.add('inactive');
-  conditioningControlsElem.classList.remove('midicondition');
+    conditioningControlsElem.classList.add('inactive');
+    conditioningControlsElem.classList.remove('midicondition');
 
-  updateConditioningParams();
+    updateConditioningParams();
 }
 
 function updateConditioningParams() {
-  const pitchHistogram = pitchHistogramElements.map(e => {
-    return parseInt(e.value, 10) || 0;
-  });
-  updateDisplayHistogram(pitchHistogram);
+    const pitchHistogram = pitchHistogramElements.map(e => {
+        return parseInt(e.value, 10) || 0;
+    });
+    updateDisplayHistogram(pitchHistogram);
 
-  if (noteDensityEncoding != null) {
-    noteDensityEncoding.dispose();
-    noteDensityEncoding = null;
-  }
+    if (noteDensityEncoding != null) {
+        noteDensityEncoding.dispose();
+        noteDensityEncoding = null;
+    }
 
-  window.location.assign(
-      '#' + densityControl.value + '|' + pitchHistogram.join(',') + '|' +
-      preset1.join(',') + '|' + preset2.join(',') + '|' +
-      (conditioned ? 'true' : 'false'));
+    const noteDensityIdx = parseInt(densityControl.value, 10) || 0;
+    const noteDensity = DENSITY_BIN_RANGES[noteDensityIdx];
+    densityDisplay.innerHTML = noteDensity.toString();
 
-  const noteDensityIdx = parseInt(densityControl.value, 10) || 0;
-  const noteDensity = DENSITY_BIN_RANGES[noteDensityIdx];
-  densityDisplay.innerHTML = noteDensity.toString();
+    noteDensityEncoding =
+        tf.oneHot(
+            tf.tensor1d([noteDensityIdx + 1], 'int32'),
+            DENSITY_BIN_RANGES.length + 1).as1D();
 
-  noteDensityEncoding =
-      tf.oneHot(
-          tf.tensor1d([noteDensityIdx + 1], 'int32'),
-          DENSITY_BIN_RANGES.length + 1).as1D();
-
-  if (pitchHistogramEncoding != null) {
-    pitchHistogramEncoding.dispose();
-    pitchHistogramEncoding = null;
-  }
-  const buffer = tf.buffer<tf.Rank.R1>([PITCH_HISTOGRAM_SIZE], 'float32');
-  const pitchHistogramTotal = pitchHistogram.reduce((prev, val) => {
-    return prev + val;
-  });
-  for (let i = 0; i < PITCH_HISTOGRAM_SIZE; i++) {
-    buffer.set(pitchHistogram[i] / pitchHistogramTotal, i);
-  }
-  pitchHistogramEncoding = buffer.toTensor();
+    if (pitchHistogramEncoding != null) {
+        pitchHistogramEncoding.dispose();
+        pitchHistogramEncoding = null;
+    }
+    const buffer = tf.buffer<tf.Rank.R1>([PITCH_HISTOGRAM_SIZE], 'float32');
+    const pitchHistogramTotal = pitchHistogram.reduce((prev, val) => {
+        return prev + val;
+    });
+    for (let i = 0; i < PITCH_HISTOGRAM_SIZE; i++) {
+        buffer.set(pitchHistogram[i] / pitchHistogramTotal, i);
+    }
+    pitchHistogramEncoding = buffer.toTensor();
 }
 
 document.getElementById('note-density').oninput = updateConditioningParams;
 pitchHistogramElements.forEach(e => {
-  e.oninput = updateConditioningParams;
+    e.oninput = updateConditioningParams;
 });
 updateConditioningParams();
 
 function updatePitchHistogram(newHist: number[]) {
-  let allZero = true;
-  for (let i = 0; i < newHist.length; i++) {
-    allZero = allZero && newHist[i] === 0;
-  }
-  if (allZero) {
-    newHist = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-  }
-  for (let i = 0; i < newHist.length; i++) {
-    pitchHistogramElements[i].value = newHist[i].toString();
-  }
+    let allZero = true;
+    for (let i = 0; i < newHist.length; i++) {
+        allZero = allZero && newHist[i] === 0;
+    }
+    if (allZero) {
+        newHist = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    }
+    for (let i = 0; i < newHist.length; i++) {
+        pitchHistogramElements[i].value = newHist[i].toString();
+    }
 
-  updateConditioningParams();
+    updateConditioningParams();
 }
-function updateDisplayHistogram(hist: number[]) {
-  let sum = 0;
-  for (let i = 0; i < hist.length; i++) {
-    sum += hist[i];
-  }
 
-  for (let i = 0; i < hist.length; i++) {
-    histogramDisplayElements[i].style.height =
-        (100 * (hist[i] / sum)).toString() + 'px';
-  }
+function updateDisplayHistogram(hist: number[]) {
+    let sum = 0;
+    for (let i = 0; i < hist.length; i++) {
+        sum += hist[i];
+    }
+
+    for (let i = 0; i < hist.length; i++) {
+        histogramDisplayElements[i].style.height =
+            (100 * (hist[i] / sum)).toString() + 'px';
+    }
 }
 
 document.getElementById('c-major').onclick = () => {
-  updatePitchHistogram([2, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1]);
+    updatePitchHistogram([2, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1]);
 };
 
 document.getElementById('f-major').onclick = () => {
-  updatePitchHistogram([1, 0, 1, 0, 1, 2, 0, 1, 0, 1, 1, 0]);
+    updatePitchHistogram([1, 0, 1, 0, 1, 2, 0, 1, 0, 1, 1, 0]);
 };
 
 document.getElementById('d-minor').onclick = () => {
-  updatePitchHistogram([1, 0, 2, 0, 1, 1, 0, 1, 0, 1, 1, 0]);
+    updatePitchHistogram([1, 0, 2, 0, 1, 1, 0, 1, 0, 1, 1, 0]);
 };
 
 document.getElementById('whole-tone').onclick = () => {
-  updatePitchHistogram([1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]);
+    updatePitchHistogram([1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]);
 };
 
 document.getElementById('pentatonic').onclick = () => {
-  updatePitchHistogram([0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0]);
+    updatePitchHistogram([0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0]);
 };
 
 document.getElementById('reset-rnn').onclick = () => {
-  resetRnn();
+    resetRnn();
 };
 
 document.getElementById('preset-1').onclick = () => {
-  updatePitchHistogram(preset1);
+    updatePitchHistogram(preset1);
 };
 
 document.getElementById('preset-2').onclick = () => {
-  updatePitchHistogram(preset2);
+    updatePitchHistogram(preset2);
 };
 
 document.getElementById('save-1').onclick = () => {
-  preset1 = pitchHistogramElements.map((e) => {
-    return parseInt(e.value, 10) || 0;
-  });
-  updateConditioningParams();
+    preset1 = pitchHistogramElements.map((e) => {
+        return parseInt(e.value, 10) || 0;
+    });
+    updateConditioningParams();
 };
 
 document.getElementById('save-2').onclick = () => {
-  preset2 = pitchHistogramElements.map((e) => {
-    return parseInt(e.value, 10) || 0;
-  });
-  updateConditioningParams();
+    preset2 = pitchHistogramElements.map((e) => {
+        return parseInt(e.value, 10) || 0;
+    });
+    updateConditioningParams();
 };
 
 function getConditioning(): tf.Tensor1D {
-  return tf.tidy(() => {
-    if (!conditioned) {
-      // TODO(nsthorat): figure out why we have to cast these shapes to numbers.
-      // The linter is complaining, though VSCode can infer the types.
-      const size = 1 + (noteDensityEncoding.shape[0] as number) +
-          (pitchHistogramEncoding.shape[0] as number);
-      const conditioning: tf.Tensor1D =
-          tf.oneHot(tf.tensor1d([0], 'int32'), size).as1D();
-      return conditioning;
-    } else {
-      const axis = 0;
-      const conditioningValues =
-          noteDensityEncoding.concat(pitchHistogramEncoding, axis);
-      return tf.tensor1d([0], 'int32').concat(conditioningValues, axis);
-    }
-  });
+    return tf.tidy(() => {
+        if (!conditioned) {
+            // TODO(nsthorat): figure out why we have to cast these shapes to numbers.
+            // The linter is complaining, though VSCode can infer the types.
+            const size = 1 + (noteDensityEncoding.shape[0] as number) +
+                (pitchHistogramEncoding.shape[0] as number);
+            const conditioning: tf.Tensor1D =
+                tf.oneHot(tf.tensor1d([0], 'int32'), size).as1D();
+            return conditioning;
+        } else {
+            const axis = 0;
+            const conditioningValues =
+                noteDensityEncoding.concat(pitchHistogramEncoding, axis);
+            return tf.tensor1d([0], 'int32').concat(conditioningValues, axis);
+        }
+    });
 }
 
 async function generateStep(loopId: number) {
-  if (loopId < currentLoopId) {
-    // Was part of an outdated generateStep() scheduled via setTimeout.
-    return;
-  }
-
-  const lstm1 = (data: tf.Tensor2D, c: tf.Tensor2D, h: tf.Tensor2D) =>
-      tf.basicLSTMCell(forgetBias, lstmKernel1, lstmBias1, data, c, h);
-  const lstm2 = (data: tf.Tensor2D, c: tf.Tensor2D, h: tf.Tensor2D) =>
-      tf.basicLSTMCell(forgetBias, lstmKernel2, lstmBias2, data, c, h);
-  const lstm3 = (data: tf.Tensor2D, c: tf.Tensor2D, h: tf.Tensor2D) =>
-      tf.basicLSTMCell(forgetBias, lstmKernel3, lstmBias3, data, c, h);
-
-  let outputs: tf.Scalar[] = [];
-  [c, h, outputs] = tf.tidy(() => {
-    // Generate some notes.
-    const innerOuts: tf.Scalar[] = [];
-    for (let i = 0; i < STEPS_PER_GENERATE_CALL; i++) {
-      // Use last sampled output as the next input.
-      const eventInput = tf.oneHot(
-        lastSample.as1D(), EVENT_SIZE).as1D();
-      // Dispose the last sample from the previous generate call, since we
-      // kept it.
-      if (i === 0) {
-        lastSample.dispose();
-      }
-      const conditioning = getConditioning();
-      const axis = 0;
-      const input = conditioning.concat(eventInput, axis).toFloat();
-      const output =
-          tf.multiRNNCell([lstm1, lstm2, lstm3], input.as2D(1, -1), c, h);
-      c.forEach(c => c.dispose());
-      h.forEach(h => h.dispose());
-      c = output[0];
-      h = output[1];
-
-      const outputH = h[2];
-      const logits = outputH.matMul(fcW).add(fcB);
-
-      const sampledOutput = tf.multinomial(logits.as1D(), 1).asScalar();
-
-      innerOuts.push(sampledOutput);
-      lastSample = sampledOutput;
+    if (loopId < currentLoopId) {
+        // Was part of an outdated generateStep() scheduled via setTimeout.
+        return;
     }
-    return [c, h, innerOuts] as [tf.Tensor2D[], tf.Tensor2D[], tf.Scalar[]];
-  });
 
-  for (let i = 0; i < outputs.length; i++) {
-    playOutput(outputs[i].dataSync()[0]);
-  }
+    const lstm1 = (data: tf.Tensor2D, c: tf.Tensor2D, h: tf.Tensor2D) =>
+        tf.basicLSTMCell(forgetBias, lstmKernel1, lstmBias1, data, c, h);
+    const lstm2 = (data: tf.Tensor2D, c: tf.Tensor2D, h: tf.Tensor2D) =>
+        tf.basicLSTMCell(forgetBias, lstmKernel2, lstmBias2, data, c, h);
+    const lstm3 = (data: tf.Tensor2D, c: tf.Tensor2D, h: tf.Tensor2D) =>
+        tf.basicLSTMCell(forgetBias, lstmKernel3, lstmBias3, data, c, h);
 
-  if (piano.now() - currentPianoTimeSec > MAX_GENERATION_LAG_SECONDS) {
-    console.warn(
-        `Generation is ${piano.now() - currentPianoTimeSec} seconds behind, ` +
-        `which is over ${MAX_NOTE_DURATION_SECONDS}. Resetting time!`);
-    currentPianoTimeSec = piano.now();
-  }
-  const delta = Math.max(
-      0, currentPianoTimeSec - piano.now() - GENERATION_BUFFER_SECONDS);
-  stepTimeout = setTimeout(() => generateStep(loopId), delta * 1000);
+    let outputs: tf.Scalar[] = [];
+    [c, h, outputs] = tf.tidy(() => {
+        // Generate some notes.
+        const innerOuts: tf.Scalar[] = [];
+        for (let i = 0; i < STEPS_PER_GENERATE_CALL; i++) {
+            // Use last sampled output as the next input.
+            const eventInput = tf.oneHot(
+                lastSample.as1D(), EVENT_SIZE).as1D();
+            // Dispose the last sample from the previous generate call, since we
+            // kept it.
+            if (i === 0) {
+                lastSample.dispose();
+            }
+            const conditioning = getConditioning();
+            const axis = 0;
+            const input = conditioning.concat(eventInput, axis).toFloat();
+            const output =
+                tf.multiRNNCell([lstm1, lstm2, lstm3], input.as2D(1, -1), c, h);
+            c.forEach(c => c.dispose());
+            h.forEach(h => h.dispose());
+            c = output[0];
+            h = output[1];
+
+            const outputH = h[2];
+            const logits = outputH.matMul(fcW).add(fcB);
+
+            const sampledOutput = tf.multinomial(logits.as1D(), 1).asScalar();
+
+            innerOuts.push(sampledOutput);
+            lastSample = sampledOutput;
+        }
+        return [c, h, innerOuts] as [tf.Tensor2D[], tf.Tensor2D[], tf.Scalar[]];
+    });
+
+    for (let i = 0; i < outputs.length; i++) {
+        playOutput(outputs[i].dataSync()[0]);
+    }
+
+    if (piano.now() - currentPianoTimeSec > MAX_GENERATION_LAG_SECONDS) {
+        console.warn(
+            `Generation is ${piano.now() - currentPianoTimeSec} seconds behind, ` +
+            `which is over ${MAX_NOTE_DURATION_SECONDS}. Resetting time!`);
+        currentPianoTimeSec = piano.now();
+    }
+    const delta = Math.max(
+        0, currentPianoTimeSec - piano.now() - GENERATION_BUFFER_SECONDS);
+    stepTimeout = setTimeout(() => generateStep(loopId), delta * 1000);
 }
 
 let midi;
@@ -483,95 +447,96 @@ let activeMidiOutputDevice: any = null;
 // tslint:disable-next-line:no-any
 let activeMidiInputDevice: any = null;
 (async () => {
-  const midiOutDropdownContainer =
-      document.getElementById('midi-out-container');
-  const midiInDropdownContainer = document.getElementById('midi-in-container');
-  try {
-    // tslint:disable-next-line:no-any
-    const navigator: any = window.navigator;
-    midi = await navigator.requestMIDIAccess();
+    const midiOutDropdownContainer =
+        document.getElementById('midi-out-container');
+    const midiInDropdownContainer = document.getElementById('midi-in-container');
+    try {
+        // tslint:disable-next-line:no-any
+        const navigator: any = window.navigator;
+        midi = await navigator.requestMIDIAccess();
 
-    const midiOutDropdown =
-        document.getElementById('midi-out') as HTMLSelectElement;
-    const midiInDropdown =
-        document.getElementById('midi-in') as HTMLSelectElement;
+        const midiOutDropdown =
+            document.getElementById('midi-out') as HTMLSelectElement;
+        const midiInDropdown =
+            document.getElementById('midi-in') as HTMLSelectElement;
 
-    let outputDeviceCount = 0;
-    // tslint:disable-next-line:no-any
-    const midiOutputDevices: any[] = [];
-    // tslint:disable-next-line:no-any
-    midi.outputs.forEach((output: any) => {
-      console.log(`
+        let outputDeviceCount = 0;
+        // tslint:disable-next-line:no-any
+        const midiOutputDevices: any[] = [];
+        // tslint:disable-next-line:no-any
+        midi.outputs.forEach((output: any) => {
+            console.log(`
           Output midi device [type: '${output.type}']
           id: ${output.id}
           manufacturer: ${output.manufacturer}
           name:${output.name}
           version: ${output.version}`);
-      midiOutputDevices.push(output);
+            midiOutputDevices.push(output);
 
-      const option = document.createElement('option');
-      option.innerText = output.name;
-      midiOutDropdown.appendChild(option);
-      outputDeviceCount++;
-    });
+            const option = document.createElement('option');
+            option.innerText = output.name;
+            midiOutDropdown.appendChild(option);
+            outputDeviceCount++;
+        });
 
-    midiOutDropdown.addEventListener('change', () => {
-      activeMidiOutputDevice =
-          midiOutputDevices[midiOutDropdown.selectedIndex - 1];
-    });
+        midiOutDropdown.addEventListener('change', () => {
+            activeMidiOutputDevice =
+                midiOutputDevices[midiOutDropdown.selectedIndex - 1];
+        });
 
-    if (outputDeviceCount === 0) {
-      midiOutDropdownContainer.innerText = MIDI_NO_OUTPUT_DEVICES_FOUND_MESSAGE;
-    }
+        if (outputDeviceCount === 0) {
+            midiOutDropdownContainer.innerText = MIDI_NO_OUTPUT_DEVICES_FOUND_MESSAGE;
+        }
 
-    let inputDeviceCount = 0;
-    // tslint:disable-next-line:no-any
-    const midiInputDevices: any[] = [];
-    // tslint:disable-next-line:no-any
-    midi.inputs.forEach((input: any) => {
-      console.log(`
+        let inputDeviceCount = 0;
+        // tslint:disable-next-line:no-any
+        const midiInputDevices: any[] = [];
+        // tslint:disable-next-line:no-any
+        midi.inputs.forEach((input: any) => {
+            console.log(`
         Input midi device [type: '${input.type}']
         id: ${input.id}
         manufacturer: ${input.manufacturer}
         name:${input.name}
         version: ${input.version}`);
-      midiInputDevices.push(input);
+            midiInputDevices.push(input);
 
-      const option = document.createElement('option');
-      option.innerText = input.name;
-      midiInDropdown.appendChild(option);
-      inputDeviceCount++;
-    });
+            const option = document.createElement('option');
+            option.innerText = input.name;
+            midiInDropdown.appendChild(option);
+            inputDeviceCount++;
+        });
 
-    // tslint:disable-next-line:no-any
-    const setActiveMidiInputDevice = (device: any) => {
-      if (activeMidiInputDevice != null) {
-        activeMidiInputDevice.onmidimessage = () => {};
-      }
-      activeMidiInputDevice = device;
-      // tslint:disable-next-line:no-any
-      device.onmidimessage = (event: any) => {
-        const data = event.data;
-        const type = data[0] & 0xf0;
-        const note = data[1];
-        const velocity = data[2];
-        if (type === 144) {
-          midiInNoteOn(note, velocity);
+        // tslint:disable-next-line:no-any
+        const setActiveMidiInputDevice = (device: any) => {
+            if (activeMidiInputDevice != null) {
+                activeMidiInputDevice.onmidimessage = () => {
+                };
+            }
+            activeMidiInputDevice = device;
+            // tslint:disable-next-line:no-any
+            device.onmidimessage = (event: any) => {
+                const data = event.data;
+                const type = data[0] & 0xf0;
+                const note = data[1];
+                const velocity = data[2];
+                if (type === 144) {
+                    midiInNoteOn(note, velocity);
+                }
+            };
+        };
+        midiInDropdown.addEventListener('change', () => {
+            setActiveMidiInputDevice(
+                midiInputDevices[midiInDropdown.selectedIndex - 1]);
+        });
+        if (inputDeviceCount === 0) {
+            midiInDropdownContainer.innerText = MIDI_NO_INPUT_DEVICES_FOUND_MESSAGE;
         }
-      };
-    };
-    midiInDropdown.addEventListener('change', () => {
-      setActiveMidiInputDevice(
-          midiInputDevices[midiInDropdown.selectedIndex - 1]);
-    });
-    if (inputDeviceCount === 0) {
-      midiInDropdownContainer.innerText = MIDI_NO_INPUT_DEVICES_FOUND_MESSAGE;
-    }
-  } catch (e) {
-    midiOutDropdownContainer.innerText = MIDI_NO_OUTPUT_DEVICES_FOUND_MESSAGE;
+    } catch (e) {
+        midiOutDropdownContainer.innerText = MIDI_NO_OUTPUT_DEVICES_FOUND_MESSAGE;
 
-    midi = null;
-  }
+        midi = null;
+    }
 })();
 
 /**
@@ -580,176 +545,178 @@ let activeMidiInputDevice: any = null;
 const CONDITIONING_OFF_TIME_MS = 30000;
 let lastNotePressedTime = performance.now();
 let midiInPitchHistogram = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+
 function midiInNoteOn(midiNote: number, velocity: number) {
-  const now = performance.now();
-  if (now - lastNotePressedTime > MID_IN_CHORD_RESET_THRESHOLD_MS) {
-    midiInPitchHistogram = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    resetRnn();
-  }
-  lastNotePressedTime = now;
-
-  // Turn on conditioning when a note is pressed/
-  if (!conditioned) {
-    resetRnn();
-    enableConditioning();
-  }
-
-  // Turn off conditioning after 30 seconds unless other notes have been played.
-  setTimeout(() => {
-    if (performance.now() - lastNotePressedTime > CONDITIONING_OFF_TIME_MS) {
-      disableConditioning();
-      resetRnn();
+    const now = performance.now();
+    if (now - lastNotePressedTime > MID_IN_CHORD_RESET_THRESHOLD_MS) {
+        midiInPitchHistogram = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+        resetRnn();
     }
-  }, CONDITIONING_OFF_TIME_MS);
+    lastNotePressedTime = now;
 
-  const note = midiNote % 12;
-  midiInPitchHistogram[note]++;
+    // Turn on conditioning when a note is pressed/
+    if (!conditioned) {
+        resetRnn();
+        enableConditioning();
+    }
 
-  updateMidiInConditioning();
+    // Turn off conditioning after 30 seconds unless other notes have been played.
+    setTimeout(() => {
+        if (performance.now() - lastNotePressedTime > CONDITIONING_OFF_TIME_MS) {
+            disableConditioning();
+            resetRnn();
+        }
+    }, CONDITIONING_OFF_TIME_MS);
+
+    const note = midiNote % 12;
+    midiInPitchHistogram[note]++;
+
+    updateMidiInConditioning();
 }
 
 function updateMidiInConditioning() {
-  updatePitchHistogram(midiInPitchHistogram);
+    updatePitchHistogram(midiInPitchHistogram);
 }
 
 /**
  * Decode the output index and play it on the piano and keyboardInterface.
  */
 function playOutput(index: number) {
-  let offset = 0;
-  for (const eventRange of EVENT_RANGES) {
-    const eventType = eventRange[0] as string;
-    const minValue = eventRange[1] as number;
-    const maxValue = eventRange[2] as number;
-    if (offset <= index && index <= offset + maxValue - minValue) {
-      if (eventType === 'note_on') {
-        const noteNum = index - offset;
-        setTimeout(() => {
-          keyboardInterface.keyDown(noteNum);
-          setTimeout(() => {
-            keyboardInterface.keyUp(noteNum);
-          }, 100);
-        }, (currentPianoTimeSec - piano.now()) * 1000);
-        activeNotes.set(noteNum, currentPianoTimeSec);
+    let offset = 0;
+    for (const eventRange of EVENT_RANGES) {
+        const eventType = eventRange[0] as string;
+        const minValue = eventRange[1] as number;
+        const maxValue = eventRange[2] as number;
+        if (offset <= index && index <= offset + maxValue - minValue) {
+            if (eventType === 'note_on') {
+                const noteNum = index - offset;
+                setTimeout(() => {
+                    keyboardInterface.keyDown(noteNum);
+                    setTimeout(() => {
+                        keyboardInterface.keyUp(noteNum);
+                    }, 100);
+                }, (currentPianoTimeSec - piano.now()) * 1000);
+                activeNotes.set(noteNum, currentPianoTimeSec);
 
-        if (activeMidiOutputDevice != null) {
-          try {
-            activeMidiOutputDevice.send(
-                [
-                  MIDI_EVENT_ON, noteNum,
-                  Math.min(Math.floor(currentVelocity * globalGain), 127)
-                ],
-                Math.floor(1000 * currentPianoTimeSec) - pianoStartTimestampMs);
-          } catch (e) {
-            console.log(
-                'Error sending midi note on event to midi output device:');
-            console.log(e);
-          }
-        }
+                if (activeMidiOutputDevice != null) {
+                    try {
+                        activeMidiOutputDevice.send(
+                            [
+                                MIDI_EVENT_ON, noteNum,
+                                Math.min(Math.floor(currentVelocity * globalGain), 127)
+                            ],
+                            Math.floor(1000 * currentPianoTimeSec) - pianoStartTimestampMs);
+                    } catch (e) {
+                        console.log(
+                            'Error sending midi note on event to midi output device:');
+                        console.log(e);
+                    }
+                }
 
-        return piano.keyDown(
-            noteNum, currentPianoTimeSec, currentVelocity * globalGain / 100);
-      } else if (eventType === 'note_off') {
-        const noteNum = index - offset;
+                return piano.keyDown(
+                    noteNum, currentPianoTimeSec, currentVelocity * globalGain / 100);
+            } else if (eventType === 'note_off') {
+                const noteNum = index - offset;
 
-        const activeNoteEndTimeSec = activeNotes.get(noteNum);
-        // If the note off event is generated for a note that hasn't been
-        // pressed, just ignore it.
-        if (activeNoteEndTimeSec == null) {
-          return;
-        }
-        const timeSec =
-            Math.max(currentPianoTimeSec, activeNoteEndTimeSec + .5);
+                const activeNoteEndTimeSec = activeNotes.get(noteNum);
+                // If the note off event is generated for a note that hasn't been
+                // pressed, just ignore it.
+                if (activeNoteEndTimeSec == null) {
+                    return;
+                }
+                const timeSec =
+                    Math.max(currentPianoTimeSec, activeNoteEndTimeSec + .5);
 
-        if (activeMidiOutputDevice != null) {
-          activeMidiOutputDevice.send(
-              [
-                MIDI_EVENT_OFF, noteNum,
-                Math.min(Math.floor(currentVelocity * globalGain), 127)
-              ],
-              Math.floor(timeSec * 1000) - pianoStartTimestampMs);
-        }
-        piano.keyUp(noteNum, timeSec);
-        activeNotes.delete(noteNum);
-        return;
-      } else if (eventType === 'time_shift') {
-        currentPianoTimeSec += (index - offset + 1) / STEPS_PER_SECOND;
-        activeNotes.forEach((timeSec, noteNum) => {
-          if (currentPianoTimeSec - timeSec > MAX_NOTE_DURATION_SECONDS) {
-            console.info(
-                `Note ${noteNum} has been active for ${
-                    currentPianoTimeSec - timeSec}, ` +
-                `seconds which is over ${MAX_NOTE_DURATION_SECONDS}, will ` +
-                `release.`);
-            if (activeMidiOutputDevice != null) {
-              activeMidiOutputDevice.send([
-                MIDI_EVENT_OFF, noteNum,
-                Math.min(Math.floor(currentVelocity * globalGain), 127)
-              ]);
+                if (activeMidiOutputDevice != null) {
+                    activeMidiOutputDevice.send(
+                        [
+                            MIDI_EVENT_OFF, noteNum,
+                            Math.min(Math.floor(currentVelocity * globalGain), 127)
+                        ],
+                        Math.floor(timeSec * 1000) - pianoStartTimestampMs);
+                }
+                piano.keyUp(noteNum, timeSec);
+                activeNotes.delete(noteNum);
+                return;
+            } else if (eventType === 'time_shift') {
+                currentPianoTimeSec += (index - offset + 1) / STEPS_PER_SECOND;
+                activeNotes.forEach((timeSec, noteNum) => {
+                    if (currentPianoTimeSec - timeSec > MAX_NOTE_DURATION_SECONDS) {
+                        console.info(
+                            `Note ${noteNum} has been active for ${
+                                currentPianoTimeSec - timeSec}, ` +
+                            `seconds which is over ${MAX_NOTE_DURATION_SECONDS}, will ` +
+                            `release.`);
+                        if (activeMidiOutputDevice != null) {
+                            activeMidiOutputDevice.send([
+                                MIDI_EVENT_OFF, noteNum,
+                                Math.min(Math.floor(currentVelocity * globalGain), 127)
+                            ]);
+                        }
+                        piano.keyUp(noteNum, currentPianoTimeSec);
+                        activeNotes.delete(noteNum);
+                    }
+                });
+                return currentPianoTimeSec;
+            } else if (eventType === 'velocity_change') {
+                currentVelocity = (index - offset + 1) * Math.ceil(127 / VELOCITY_BINS);
+                currentVelocity = currentVelocity / 127;
+                return currentVelocity;
+            } else {
+                throw new Error('Could not decode eventType: ' + eventType);
             }
-            piano.keyUp(noteNum, currentPianoTimeSec);
-            activeNotes.delete(noteNum);
-          }
-        });
-        return currentPianoTimeSec;
-      } else if (eventType === 'velocity_change') {
-        currentVelocity = (index - offset + 1) * Math.ceil(127 / VELOCITY_BINS);
-        currentVelocity = currentVelocity / 127;
-        return currentVelocity;
-      } else {
-        throw new Error('Could not decode eventType: ' + eventType);
-      }
+        }
+        offset += maxValue - minValue + 1;
     }
-    offset += maxValue - minValue + 1;
-  }
-  throw new Error(`Could not decode index: ${index}`);
+    throw new Error(`Could not decode index: ${index}`);
 }
 
 // Reset the RNN repeatedly so it doesn't trail off into incoherent musical
 // babble.
 const resettingText = document.getElementById('resettingText');
-function resetRnnRepeatedly() {
-  if (modelReady) {
-    resetRnn();
-    resettingText.style.opacity = '100';
-  }
 
-  setTimeout(() => {
-    resettingText.style.opacity = '0';
-  }, 1000);
-  resetTimeout = setTimeout(resetRnnRepeatedly, RESET_RNN_FREQUENCY_MS);
+function resetRnnRepeatedly() {
+    if (modelReady) {
+        resetRnn();
+        resettingText.style.opacity = '100';
+    }
+
+    setTimeout(() => {
+        resettingText.style.opacity = '0';
+    }, 1000);
+    resetTimeout = setTimeout(resetRnnRepeatedly, RESET_RNN_FREQUENCY_MS);
 }
 
 function pauseModel() {
-  if (stepTimeout != null) {
-    clearTimeout(stepTimeout);
-    stepTimeout = null;
-  }
-  if (resetTimeout != null) {
-    clearTimeout(resetTimeout);
-    resetTimeout = null;
-  }
-  modelRunning = false;
+    if (stepTimeout != null) {
+        clearTimeout(stepTimeout);
+        stepTimeout = null;
+    }
+    if (resetTimeout != null) {
+        clearTimeout(resetTimeout);
+        resetTimeout = null;
+    }
+    modelRunning = false;
 }
 
 function startModel() {
-  if (modelReady) {
-    modelRunning = true;
-    resetRnnRepeatedly();
-  }
+    if (modelReady) {
+        modelRunning = true;
+        resetRnnRepeatedly();
+    }
 }
 
 function enableResumeButton() {
-  startButton.removeAttribute('disabled');
-  startButton.classList.remove('disabled');
+    startButton.removeAttribute('disabled');
+    startButton.classList.remove('disabled');
 }
 
 startButton.addEventListener('click', () => {
-  if (modelRunning) {
-    pauseModel();
-    startButton.innerHTML = 'Play';
-  } else {
-    startModel();
-    startButton.innerHTML = 'Pause';
-  }
+    if (modelRunning) {
+        pauseModel();
+        startButton.innerHTML = 'Play';
+    } else {
+        startModel();
+        startButton.innerHTML = 'Pause';
+    }
 });
