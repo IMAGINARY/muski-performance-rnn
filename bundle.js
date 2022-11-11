@@ -37852,8 +37852,6 @@ gainSliderElement.addEventListener('input', function () {
 var notes = ['c', 'cs', 'd', 'ds', 'e', 'f', 'fs', 'g', 'gs', 'a', 'as', 'b'];
 var pitchHistogramElements = notes.map(function (note) { return document.getElementById('pitch-' + note); });
 var histogramDisplayElements = notes.map(function (note) { return document.getElementById('hist-' + note); });
-var preset1 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
-var preset2 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
 function enableConditioning() {
     conditioned = true;
     conditioningOffElem.checked = false;
@@ -37902,19 +37900,6 @@ pitchHistogramElements.forEach(function (e) {
     e.oninput = updateConditioningParams;
 });
 updateConditioningParams();
-function updatePitchHistogram(newHist) {
-    var allZero = true;
-    for (var i = 0; i < newHist.length; i++) {
-        allZero = allZero && newHist[i] === 0;
-    }
-    if (allZero) {
-        newHist = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    }
-    for (var i = 0; i < newHist.length; i++) {
-        pitchHistogramElements[i].value = newHist[i].toString();
-    }
-    updateConditioningParams();
-}
 function updateDisplayHistogram(hist) {
     var sum = 0;
     for (var i = 0; i < hist.length; i++) {
@@ -37925,41 +37910,8 @@ function updateDisplayHistogram(hist) {
             (100 * (hist[i] / sum)).toString() + 'px';
     }
 }
-document.getElementById('c-major').onclick = function () {
-    updatePitchHistogram([2, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1]);
-};
-document.getElementById('f-major').onclick = function () {
-    updatePitchHistogram([1, 0, 1, 0, 1, 2, 0, 1, 0, 1, 1, 0]);
-};
-document.getElementById('d-minor').onclick = function () {
-    updatePitchHistogram([1, 0, 2, 0, 1, 1, 0, 1, 0, 1, 1, 0]);
-};
-document.getElementById('whole-tone').onclick = function () {
-    updatePitchHistogram([1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]);
-};
-document.getElementById('pentatonic').onclick = function () {
-    updatePitchHistogram([0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0]);
-};
 document.getElementById('reset-rnn').onclick = function () {
     resetRnn();
-};
-document.getElementById('preset-1').onclick = function () {
-    updatePitchHistogram(preset1);
-};
-document.getElementById('preset-2').onclick = function () {
-    updatePitchHistogram(preset2);
-};
-document.getElementById('save-1').onclick = function () {
-    preset1 = pitchHistogramElements.map(function (e) {
-        return parseInt(e.value, 10) || 0;
-    });
-    updateConditioningParams();
-};
-document.getElementById('save-2').onclick = function () {
-    preset2 = pitchHistogramElements.map(function (e) {
-        return parseInt(e.value, 10) || 0;
-    });
-    updateConditioningParams();
 };
 function getConditioning() {
     return tf.tidy(function () {

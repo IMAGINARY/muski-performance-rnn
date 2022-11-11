@@ -211,9 +211,6 @@ const pitchHistogramElements = notes.map(
 const histogramDisplayElements = notes.map(
     note => document.getElementById('hist-' + note) as HTMLDivElement);
 
-let preset1 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
-let preset2 = [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1];
-
 function enableConditioning() {
     conditioned = true;
     conditioningOffElem.checked = false;
@@ -276,21 +273,6 @@ pitchHistogramElements.forEach(e => {
 });
 updateConditioningParams();
 
-function updatePitchHistogram(newHist: number[]) {
-    let allZero = true;
-    for (let i = 0; i < newHist.length; i++) {
-        allZero = allZero && newHist[i] === 0;
-    }
-    if (allZero) {
-        newHist = [1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-    }
-    for (let i = 0; i < newHist.length; i++) {
-        pitchHistogramElements[i].value = newHist[i].toString();
-    }
-
-    updateConditioningParams();
-}
-
 function updateDisplayHistogram(hist: number[]) {
     let sum = 0;
     for (let i = 0; i < hist.length; i++) {
@@ -303,50 +285,8 @@ function updateDisplayHistogram(hist: number[]) {
     }
 }
 
-document.getElementById('c-major').onclick = () => {
-    updatePitchHistogram([2, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1]);
-};
-
-document.getElementById('f-major').onclick = () => {
-    updatePitchHistogram([1, 0, 1, 0, 1, 2, 0, 1, 0, 1, 1, 0]);
-};
-
-document.getElementById('d-minor').onclick = () => {
-    updatePitchHistogram([1, 0, 2, 0, 1, 1, 0, 1, 0, 1, 1, 0]);
-};
-
-document.getElementById('whole-tone').onclick = () => {
-    updatePitchHistogram([1, 0, 1, 0, 1, 0, 1, 0, 1, 0, 1, 0]);
-};
-
-document.getElementById('pentatonic').onclick = () => {
-    updatePitchHistogram([0, 1, 0, 1, 0, 0, 1, 0, 1, 0, 1, 0]);
-};
-
 document.getElementById('reset-rnn').onclick = () => {
     resetRnn();
-};
-
-document.getElementById('preset-1').onclick = () => {
-    updatePitchHistogram(preset1);
-};
-
-document.getElementById('preset-2').onclick = () => {
-    updatePitchHistogram(preset2);
-};
-
-document.getElementById('save-1').onclick = () => {
-    preset1 = pitchHistogramElements.map((e) => {
-        return parseInt(e.value, 10) || 0;
-    });
-    updateConditioningParams();
-};
-
-document.getElementById('save-2').onclick = () => {
-    preset2 = pitchHistogramElements.map((e) => {
-        return parseInt(e.value, 10) || 0;
-    });
-    updateConditioningParams();
 };
 
 function getConditioning(): tf.Tensor1D {
