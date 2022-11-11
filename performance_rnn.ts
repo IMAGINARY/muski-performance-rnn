@@ -58,9 +58,6 @@ let noteDensityEncoding: tf.Tensor1D;
 let conditioned = false;
 
 let currentPianoTimeSec = 0;
-// When the piano roll starts in browser-time via performance.now().
-let pianoStartTimestampMs = 0;
-
 let currentVelocity = 100;
 
 const MIN_MIDI_PITCH = 0;
@@ -68,13 +65,6 @@ const MAX_MIDI_PITCH = 127;
 const VELOCITY_BINS = 32;
 const MAX_SHIFT_STEPS = 100;
 const STEPS_PER_SECOND = 100;
-
-const MIDI_EVENT_ON = 0x90;
-const MIDI_EVENT_OFF = 0x80;
-const MIDI_NO_OUTPUT_DEVICES_FOUND_MESSAGE = 'No midi output devices found.';
-const MIDI_NO_INPUT_DEVICES_FOUND_MESSAGE = 'No midi input devices found.';
-
-const MID_IN_CHORD_RESET_THRESHOLD_MS = 1000;
 
 // The unique id of the currently scheduled setTimeout loop.
 let currentLoopId = 0;
@@ -178,7 +168,6 @@ function resetRnn() {
     }
     lastSample = tf.scalar(PRIMER_IDX, 'int32');
     currentPianoTimeSec = piano.now();
-    pianoStartTimestampMs = performance.now() - currentPianoTimeSec * 1000;
     currentLoopId++;
     generateStep(currentLoopId);
 }
@@ -441,143 +430,6 @@ async function generateStep(loopId: number) {
     stepTimeout = setTimeout(() => generateStep(loopId), delta * 1000);
 }
 
-let midi;
-// tslint:disable-next-line:no-any
-let activeMidiOutputDevice: any = null;
-// tslint:disable-next-line:no-any
-let activeMidiInputDevice: any = null;
-(async () => {
-    const midiOutDropdownContainer =
-        document.getElementById('midi-out-container');
-    const midiInDropdownContainer = document.getElementById('midi-in-container');
-    try {
-        // tslint:disable-next-line:no-any
-        const navigator: any = window.navigator;
-        midi = await navigator.requestMIDIAccess();
-
-        const midiOutDropdown =
-            document.getElementById('midi-out') as HTMLSelectElement;
-        const midiInDropdown =
-            document.getElementById('midi-in') as HTMLSelectElement;
-
-        let outputDeviceCount = 0;
-        // tslint:disable-next-line:no-any
-        const midiOutputDevices: any[] = [];
-        // tslint:disable-next-line:no-any
-        midi.outputs.forEach((output: any) => {
-            console.log(`
-          Output midi device [type: '${output.type}']
-          id: ${output.id}
-          manufacturer: ${output.manufacturer}
-          name:${output.name}
-          version: ${output.version}`);
-            midiOutputDevices.push(output);
-
-            const option = document.createElement('option');
-            option.innerText = output.name;
-            midiOutDropdown.appendChild(option);
-            outputDeviceCount++;
-        });
-
-        midiOutDropdown.addEventListener('change', () => {
-            activeMidiOutputDevice =
-                midiOutputDevices[midiOutDropdown.selectedIndex - 1];
-        });
-
-        if (outputDeviceCount === 0) {
-            midiOutDropdownContainer.innerText = MIDI_NO_OUTPUT_DEVICES_FOUND_MESSAGE;
-        }
-
-        let inputDeviceCount = 0;
-        // tslint:disable-next-line:no-any
-        const midiInputDevices: any[] = [];
-        // tslint:disable-next-line:no-any
-        midi.inputs.forEach((input: any) => {
-            console.log(`
-        Input midi device [type: '${input.type}']
-        id: ${input.id}
-        manufacturer: ${input.manufacturer}
-        name:${input.name}
-        version: ${input.version}`);
-            midiInputDevices.push(input);
-
-            const option = document.createElement('option');
-            option.innerText = input.name;
-            midiInDropdown.appendChild(option);
-            inputDeviceCount++;
-        });
-
-        // tslint:disable-next-line:no-any
-        const setActiveMidiInputDevice = (device: any) => {
-            if (activeMidiInputDevice != null) {
-                activeMidiInputDevice.onmidimessage = () => {
-                };
-            }
-            activeMidiInputDevice = device;
-            // tslint:disable-next-line:no-any
-            device.onmidimessage = (event: any) => {
-                const data = event.data;
-                const type = data[0] & 0xf0;
-                const note = data[1];
-                const velocity = data[2];
-                if (type === 144) {
-                    midiInNoteOn(note, velocity);
-                }
-            };
-        };
-        midiInDropdown.addEventListener('change', () => {
-            setActiveMidiInputDevice(
-                midiInputDevices[midiInDropdown.selectedIndex - 1]);
-        });
-        if (inputDeviceCount === 0) {
-            midiInDropdownContainer.innerText = MIDI_NO_INPUT_DEVICES_FOUND_MESSAGE;
-        }
-    } catch (e) {
-        midiOutDropdownContainer.innerText = MIDI_NO_OUTPUT_DEVICES_FOUND_MESSAGE;
-
-        midi = null;
-    }
-})();
-
-/**
- * Handle midi input.
- */
-const CONDITIONING_OFF_TIME_MS = 30000;
-let lastNotePressedTime = performance.now();
-let midiInPitchHistogram = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-
-function midiInNoteOn(midiNote: number, velocity: number) {
-    const now = performance.now();
-    if (now - lastNotePressedTime > MID_IN_CHORD_RESET_THRESHOLD_MS) {
-        midiInPitchHistogram = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        resetRnn();
-    }
-    lastNotePressedTime = now;
-
-    // Turn on conditioning when a note is pressed/
-    if (!conditioned) {
-        resetRnn();
-        enableConditioning();
-    }
-
-    // Turn off conditioning after 30 seconds unless other notes have been played.
-    setTimeout(() => {
-        if (performance.now() - lastNotePressedTime > CONDITIONING_OFF_TIME_MS) {
-            disableConditioning();
-            resetRnn();
-        }
-    }, CONDITIONING_OFF_TIME_MS);
-
-    const note = midiNote % 12;
-    midiInPitchHistogram[note]++;
-
-    updateMidiInConditioning();
-}
-
-function updateMidiInConditioning() {
-    updatePitchHistogram(midiInPitchHistogram);
-}
-
 /**
  * Decode the output index and play it on the piano and keyboardInterface.
  */
@@ -598,21 +450,6 @@ function playOutput(index: number) {
                 }, (currentPianoTimeSec - piano.now()) * 1000);
                 activeNotes.set(noteNum, currentPianoTimeSec);
 
-                if (activeMidiOutputDevice != null) {
-                    try {
-                        activeMidiOutputDevice.send(
-                            [
-                                MIDI_EVENT_ON, noteNum,
-                                Math.min(Math.floor(currentVelocity * globalGain), 127)
-                            ],
-                            Math.floor(1000 * currentPianoTimeSec) - pianoStartTimestampMs);
-                    } catch (e) {
-                        console.log(
-                            'Error sending midi note on event to midi output device:');
-                        console.log(e);
-                    }
-                }
-
                 return piano.keyDown(
                     noteNum, currentPianoTimeSec, currentVelocity * globalGain / 100);
             } else if (eventType === 'note_off') {
@@ -627,14 +464,6 @@ function playOutput(index: number) {
                 const timeSec =
                     Math.max(currentPianoTimeSec, activeNoteEndTimeSec + .5);
 
-                if (activeMidiOutputDevice != null) {
-                    activeMidiOutputDevice.send(
-                        [
-                            MIDI_EVENT_OFF, noteNum,
-                            Math.min(Math.floor(currentVelocity * globalGain), 127)
-                        ],
-                        Math.floor(timeSec * 1000) - pianoStartTimestampMs);
-                }
                 piano.keyUp(noteNum, timeSec);
                 activeNotes.delete(noteNum);
                 return;
@@ -647,12 +476,7 @@ function playOutput(index: number) {
                                 currentPianoTimeSec - timeSec}, ` +
                             `seconds which is over ${MAX_NOTE_DURATION_SECONDS}, will ` +
                             `release.`);
-                        if (activeMidiOutputDevice != null) {
-                            activeMidiOutputDevice.send([
-                                MIDI_EVENT_OFF, noteNum,
-                                Math.min(Math.floor(currentVelocity * globalGain), 127)
-                            ]);
-                        }
+
                         piano.keyUp(noteNum, currentPianoTimeSec);
                         activeNotes.delete(noteNum);
                     }

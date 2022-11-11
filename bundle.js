@@ -37708,7 +37708,6 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
         if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
 };
-var _this = this;
 Object.defineProperty(exports, "__esModule", { value: true });
 var tf = require("@tensorflow/tfjs-core");
 var keyboard_element_1 = require("./keyboard_element");
@@ -37739,18 +37738,12 @@ var pitchHistogramEncoding;
 var noteDensityEncoding;
 var conditioned = false;
 var currentPianoTimeSec = 0;
-var pianoStartTimestampMs = 0;
 var currentVelocity = 100;
 var MIN_MIDI_PITCH = 0;
 var MAX_MIDI_PITCH = 127;
 var VELOCITY_BINS = 32;
 var MAX_SHIFT_STEPS = 100;
 var STEPS_PER_SECOND = 100;
-var MIDI_EVENT_ON = 0x90;
-var MIDI_EVENT_OFF = 0x80;
-var MIDI_NO_OUTPUT_DEVICES_FOUND_MESSAGE = 'No midi output devices found.';
-var MIDI_NO_INPUT_DEVICES_FOUND_MESSAGE = 'No midi input devices found.';
-var MID_IN_CHORD_RESET_THRESHOLD_MS = 1000;
 var currentLoopId = 0;
 var EVENT_RANGES = [
     ['note_on', MIN_MIDI_PITCH, MAX_MIDI_PITCH],
@@ -37832,7 +37825,6 @@ function resetRnn() {
     }
     lastSample = tf.scalar(PRIMER_IDX, 'int32');
     currentPianoTimeSec = piano.now();
-    pianoStartTimestampMs = performance.now() - currentPianoTimeSec * 1000;
     currentLoopId++;
     generateStep(currentLoopId);
 }
@@ -38038,111 +38030,6 @@ function generateStep(loopId) {
         });
     });
 }
-var midi;
-var activeMidiOutputDevice = null;
-var activeMidiInputDevice = null;
-(function () { return __awaiter(_this, void 0, void 0, function () {
-    var midiOutDropdownContainer, midiInDropdownContainer, navigator_1, midiOutDropdown_1, midiInDropdown_1, outputDeviceCount_1, midiOutputDevices_1, inputDeviceCount_1, midiInputDevices_1, setActiveMidiInputDevice_1, e_1;
-    return __generator(this, function (_a) {
-        switch (_a.label) {
-            case 0:
-                midiOutDropdownContainer = document.getElementById('midi-out-container');
-                midiInDropdownContainer = document.getElementById('midi-in-container');
-                _a.label = 1;
-            case 1:
-                _a.trys.push([1, 3, , 4]);
-                navigator_1 = window.navigator;
-                return [4, navigator_1.requestMIDIAccess()];
-            case 2:
-                midi = _a.sent();
-                midiOutDropdown_1 = document.getElementById('midi-out');
-                midiInDropdown_1 = document.getElementById('midi-in');
-                outputDeviceCount_1 = 0;
-                midiOutputDevices_1 = [];
-                midi.outputs.forEach(function (output) {
-                    console.log("\n          Output midi device [type: '" + output.type + "']\n          id: " + output.id + "\n          manufacturer: " + output.manufacturer + "\n          name:" + output.name + "\n          version: " + output.version);
-                    midiOutputDevices_1.push(output);
-                    var option = document.createElement('option');
-                    option.innerText = output.name;
-                    midiOutDropdown_1.appendChild(option);
-                    outputDeviceCount_1++;
-                });
-                midiOutDropdown_1.addEventListener('change', function () {
-                    activeMidiOutputDevice =
-                        midiOutputDevices_1[midiOutDropdown_1.selectedIndex - 1];
-                });
-                if (outputDeviceCount_1 === 0) {
-                    midiOutDropdownContainer.innerText = MIDI_NO_OUTPUT_DEVICES_FOUND_MESSAGE;
-                }
-                inputDeviceCount_1 = 0;
-                midiInputDevices_1 = [];
-                midi.inputs.forEach(function (input) {
-                    console.log("\n        Input midi device [type: '" + input.type + "']\n        id: " + input.id + "\n        manufacturer: " + input.manufacturer + "\n        name:" + input.name + "\n        version: " + input.version);
-                    midiInputDevices_1.push(input);
-                    var option = document.createElement('option');
-                    option.innerText = input.name;
-                    midiInDropdown_1.appendChild(option);
-                    inputDeviceCount_1++;
-                });
-                setActiveMidiInputDevice_1 = function (device) {
-                    if (activeMidiInputDevice != null) {
-                        activeMidiInputDevice.onmidimessage = function () {
-                        };
-                    }
-                    activeMidiInputDevice = device;
-                    device.onmidimessage = function (event) {
-                        var data = event.data;
-                        var type = data[0] & 0xf0;
-                        var note = data[1];
-                        var velocity = data[2];
-                        if (type === 144) {
-                            midiInNoteOn(note, velocity);
-                        }
-                    };
-                };
-                midiInDropdown_1.addEventListener('change', function () {
-                    setActiveMidiInputDevice_1(midiInputDevices_1[midiInDropdown_1.selectedIndex - 1]);
-                });
-                if (inputDeviceCount_1 === 0) {
-                    midiInDropdownContainer.innerText = MIDI_NO_INPUT_DEVICES_FOUND_MESSAGE;
-                }
-                return [3, 4];
-            case 3:
-                e_1 = _a.sent();
-                midiOutDropdownContainer.innerText = MIDI_NO_OUTPUT_DEVICES_FOUND_MESSAGE;
-                midi = null;
-                return [3, 4];
-            case 4: return [2];
-        }
-    });
-}); })();
-var CONDITIONING_OFF_TIME_MS = 30000;
-var lastNotePressedTime = performance.now();
-var midiInPitchHistogram = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-function midiInNoteOn(midiNote, velocity) {
-    var now = performance.now();
-    if (now - lastNotePressedTime > MID_IN_CHORD_RESET_THRESHOLD_MS) {
-        midiInPitchHistogram = [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
-        resetRnn();
-    }
-    lastNotePressedTime = now;
-    if (!conditioned) {
-        resetRnn();
-        enableConditioning();
-    }
-    setTimeout(function () {
-        if (performance.now() - lastNotePressedTime > CONDITIONING_OFF_TIME_MS) {
-            disableConditioning();
-            resetRnn();
-        }
-    }, CONDITIONING_OFF_TIME_MS);
-    var note = midiNote % 12;
-    midiInPitchHistogram[note]++;
-    updateMidiInConditioning();
-}
-function updateMidiInConditioning() {
-    updatePitchHistogram(midiInPitchHistogram);
-}
 function playOutput(index) {
     var offset = 0;
     var _loop_1 = function (eventRange) {
@@ -38159,18 +38046,6 @@ function playOutput(index) {
                     }, 100);
                 }, (currentPianoTimeSec - piano.now()) * 1000);
                 activeNotes.set(noteNum_1, currentPianoTimeSec);
-                if (activeMidiOutputDevice != null) {
-                    try {
-                        activeMidiOutputDevice.send([
-                            MIDI_EVENT_ON, noteNum_1,
-                            Math.min(Math.floor(currentVelocity * globalGain), 127)
-                        ], Math.floor(1000 * currentPianoTimeSec) - pianoStartTimestampMs);
-                    }
-                    catch (e) {
-                        console.log('Error sending midi note on event to midi output device:');
-                        console.log(e);
-                    }
-                }
                 return { value: piano.keyDown(noteNum_1, currentPianoTimeSec, currentVelocity * globalGain / 100) };
             }
             else if (eventType === 'note_off') {
@@ -38180,12 +38055,6 @@ function playOutput(index) {
                     return { value: void 0 };
                 }
                 var timeSec = Math.max(currentPianoTimeSec, activeNoteEndTimeSec + .5);
-                if (activeMidiOutputDevice != null) {
-                    activeMidiOutputDevice.send([
-                        MIDI_EVENT_OFF, noteNum,
-                        Math.min(Math.floor(currentVelocity * globalGain), 127)
-                    ], Math.floor(timeSec * 1000) - pianoStartTimestampMs);
-                }
                 piano.keyUp(noteNum, timeSec);
                 activeNotes.delete(noteNum);
                 return { value: void 0 };
@@ -38197,12 +38066,6 @@ function playOutput(index) {
                         console.info("Note " + noteNum + " has been active for " + (currentPianoTimeSec - timeSec) + ", " +
                             ("seconds which is over " + MAX_NOTE_DURATION_SECONDS + ", will ") +
                             "release.");
-                        if (activeMidiOutputDevice != null) {
-                            activeMidiOutputDevice.send([
-                                MIDI_EVENT_OFF, noteNum,
-                                Math.min(Math.floor(currentVelocity * globalGain), 127)
-                            ]);
-                        }
                         piano.keyUp(noteNum, currentPianoTimeSec);
                         activeNotes.delete(noteNum);
                     }
