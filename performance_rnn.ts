@@ -31,6 +31,9 @@ let fcW: tf.Tensor2D;
 const forgetBias = tf.scalar(1.0);
 const activeNotes = new Map<number, number>();
 
+let stepTimeout : NodeJS.Timer = null;
+let resetTimeout : NodeJS.Timer = null;
+
 // How many steps to generate per generateStep call.
 // Generating more steps makes it less likely that we'll lag behind in note
 // generation. Generating fewer steps makes it less likely that the browser UI
@@ -116,6 +119,9 @@ if (!isDeviceSupported) {
 }
 
 let modelReady = false;
+let modelRunning = false;
+
+let startButton = document.querySelector('#start-pause-button') as HTMLButtonElement;
 
 function start() {
   piano.load(SALAMANDER_URL)
@@ -152,7 +158,7 @@ function start() {
         fcB = vars['fully_connected/biases'] as tf.Tensor1D;
         fcW = vars['fully_connected/weights'] as tf.Tensor2D;
         modelReady = true;
-        resetRnn();
+        enableResumeButton();
       });
 }
 
@@ -468,7 +474,7 @@ async function generateStep(loopId: number) {
   }
   const delta = Math.max(
       0, currentPianoTimeSec - piano.now() - GENERATION_BUFFER_SECONDS);
-  setTimeout(() => generateStep(loopId), delta * 1000);
+  stepTimeout = setTimeout(() => generateStep(loopId), delta * 1000);
 }
 
 let midi;
@@ -711,6 +717,39 @@ function resetRnnRepeatedly() {
   setTimeout(() => {
     resettingText.style.opacity = '0';
   }, 1000);
-  setTimeout(resetRnnRepeatedly, RESET_RNN_FREQUENCY_MS);
+  resetTimeout = setTimeout(resetRnnRepeatedly, RESET_RNN_FREQUENCY_MS);
 }
-setTimeout(resetRnnRepeatedly, RESET_RNN_FREQUENCY_MS);
+
+function pauseModel() {
+  if (stepTimeout != null) {
+    clearTimeout(stepTimeout);
+    stepTimeout = null;
+  }
+  if (resetTimeout != null) {
+    clearTimeout(resetTimeout);
+    resetTimeout = null;
+  }
+  modelRunning = false;
+}
+
+function startModel() {
+  if (modelReady) {
+    modelRunning = true;
+    resetRnnRepeatedly();
+  }
+}
+
+function enableResumeButton() {
+  startButton.removeAttribute('disabled');
+  startButton.classList.remove('disabled');
+}
+
+startButton.addEventListener('click', () => {
+  if (modelRunning) {
+    pauseModel();
+    startButton.innerHTML = 'Play';
+  } else {
+    startModel();
+    startButton.innerHTML = 'Pause';
+  }
+});

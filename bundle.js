@@ -37725,6 +37725,8 @@ var fcB;
 var fcW;
 var forgetBias = tf.scalar(1.0);
 var activeNotes = new Map();
+var stepTimeout = null;
+var resetTimeout = null;
 var STEPS_PER_GENERATE_CALL = 10;
 var GENERATION_BUFFER_SECONDS = .5;
 var MAX_GENERATION_LAG_SECONDS = 1;
@@ -37784,6 +37786,8 @@ else {
     start();
 }
 var modelReady = false;
+var modelRunning = false;
+var startButton = document.querySelector('#start-pause-button');
 function start() {
     piano.load(SALAMANDER_URL)
         .then(function () {
@@ -37809,7 +37813,7 @@ function start() {
         fcB = vars['fully_connected/biases'];
         fcW = vars['fully_connected/weights'];
         modelReady = true;
-        resetRnn();
+        enableResumeButton();
     });
 }
 function resetRnn() {
@@ -38063,7 +38067,7 @@ function generateStep(loopId) {
                 currentPianoTimeSec = piano.now();
             }
             delta = Math.max(0, currentPianoTimeSec - piano.now() - GENERATION_BUFFER_SECONDS);
-            setTimeout(function () { return generateStep(loopId); }, delta * 1000);
+            stepTimeout = setTimeout(function () { return generateStep(loopId); }, delta * 1000);
             return [2];
         });
     });
@@ -38266,9 +38270,39 @@ function resetRnnRepeatedly() {
     setTimeout(function () {
         resettingText.style.opacity = '0';
     }, 1000);
-    setTimeout(resetRnnRepeatedly, RESET_RNN_FREQUENCY_MS);
+    resetTimeout = setTimeout(resetRnnRepeatedly, RESET_RNN_FREQUENCY_MS);
 }
-setTimeout(resetRnnRepeatedly, RESET_RNN_FREQUENCY_MS);
+function pauseModel() {
+    if (stepTimeout != null) {
+        clearTimeout(stepTimeout);
+        stepTimeout = null;
+    }
+    if (resetTimeout != null) {
+        clearTimeout(resetTimeout);
+        resetTimeout = null;
+    }
+    modelRunning = false;
+}
+function startModel() {
+    if (modelReady) {
+        modelRunning = true;
+        resetRnnRepeatedly();
+    }
+}
+function enableResumeButton() {
+    startButton.removeAttribute('disabled');
+    startButton.classList.remove('disabled');
+}
+startButton.addEventListener('click', function () {
+    if (modelRunning) {
+        pauseModel();
+        startButton.innerHTML = 'Play';
+    }
+    else {
+        startModel();
+        startButton.innerHTML = 'Pause';
+    }
+});
 
 },{"./keyboard_element":1,"@tensorflow/tfjs-core":9,"tone-piano":107}]},{},[109])(109)
 });
