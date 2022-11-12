@@ -58,7 +58,6 @@ const RESET_RNN_FREQUENCY_MS = 30000;
 
 let pitchDistribution: tf.Tensor1D;
 let noteDensityEncoding: tf.Tensor1D;
-let conditioned = false;
 
 let currentPianoTimeSec = 0;
 let currentVelocity = 100;
@@ -186,16 +185,6 @@ resize();
 const densityControl =
     document.getElementById('note-density') as HTMLInputElement;
 const densityDisplay = document.getElementById('note-density-display');
-const conditioningOffElem =
-    document.getElementById('conditioning-off') as HTMLInputElement;
-conditioningOffElem.onchange = disableConditioning;
-const conditioningOnElem =
-    document.getElementById('conditioning-on') as HTMLInputElement;
-conditioningOnElem.onchange = enableConditioning;
-setTimeout(() => disableConditioning());
-
-const conditioningControlsElem =
-    document.getElementById('conditioning-controls') as HTMLDivElement;
 
 const gainSliderElement = document.getElementById('gain') as HTMLInputElement;
 const gainDisplayElement =
@@ -206,30 +195,6 @@ gainSliderElement.addEventListener('input', () => {
     globalGain = +gainSliderElement.value;
     gainDisplayElement.innerText = globalGain.toString();
 });
-
-const notes = ['c', 'cs', 'd', 'ds', 'e', 'f', 'fs', 'g', 'gs', 'a', 'as', 'b'];
-
-function enableConditioning() {
-    conditioned = true;
-    conditioningOffElem.checked = false;
-    conditioningOnElem.checked = true;
-
-    conditioningControlsElem.classList.remove('inactive');
-    conditioningControlsElem.classList.remove('midicondition');
-
-    updateConditioningParams();
-}
-
-function disableConditioning() {
-    conditioned = false;
-    conditioningOffElem.checked = true;
-    conditioningOnElem.checked = false;
-
-    conditioningControlsElem.classList.add('inactive');
-    conditioningControlsElem.classList.remove('midicondition');
-
-    updateConditioningParams();
-}
 
 function updateConditioningParams() {
     if (noteDensityEncoding != null) {
@@ -254,7 +219,7 @@ function updateConditioningParams() {
  *  An array of 12 numbers, one for each note, representing the relative
  *  frequency of each note. The numbers do not need to sum to 1.
  */
-function setPitchWeights(values : Array<number>) {
+function setPitchWeights(values: Array<number>) {
     if (PITCH_WEIGHT_SIZE != values.length) {
         throw new Error(`Wrong number of pitch weights (should be ${PITCH_WEIGHT_SIZE})`);
     }
@@ -283,20 +248,10 @@ document.getElementById('reset-rnn').onclick = () => {
 
 function getConditioning(): tf.Tensor1D {
     return tf.tidy(() => {
-        if (!conditioned) {
-            // TODO(nsthorat): figure out why we have to cast these shapes to numbers.
-            // The linter is complaining, though VSCode can infer the types.
-            const size = 1 + (noteDensityEncoding.shape[0] as number) +
-                (pitchDistribution.shape[0] as number);
-            const conditioning: tf.Tensor1D =
-                tf.oneHot(tf.tensor1d([0], 'int32'), size).as1D();
-            return conditioning;
-        } else {
-            const axis = 0;
-            const conditioningValues =
-                noteDensityEncoding.concat(pitchDistribution, axis);
-            return tf.tensor1d([0], 'int32').concat(conditioningValues, axis);
-        }
+        const axis = 0;
+        const conditioningValues =
+            noteDensityEncoding.concat(pitchDistribution, axis);
+        return tf.tensor1d([0], 'int32').concat(conditioningValues, axis);
     });
 }
 

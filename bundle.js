@@ -37737,7 +37737,6 @@ var PITCH_WEIGHT_SIZE = NOTES_PER_OCTAVE;
 var RESET_RNN_FREQUENCY_MS = 30000;
 var pitchDistribution;
 var noteDensityEncoding;
-var conditioned = false;
 var currentPianoTimeSec = 0;
 var currentVelocity = 100;
 var MIN_MIDI_PITCH = 0;
@@ -37836,12 +37835,6 @@ function resize() {
 resize();
 var densityControl = document.getElementById('note-density');
 var densityDisplay = document.getElementById('note-density-display');
-var conditioningOffElem = document.getElementById('conditioning-off');
-conditioningOffElem.onchange = disableConditioning;
-var conditioningOnElem = document.getElementById('conditioning-on');
-conditioningOnElem.onchange = enableConditioning;
-setTimeout(function () { return disableConditioning(); });
-var conditioningControlsElem = document.getElementById('conditioning-controls');
 var gainSliderElement = document.getElementById('gain');
 var gainDisplayElement = document.getElementById('gain-display');
 var globalGain = +gainSliderElement.value;
@@ -37850,23 +37843,6 @@ gainSliderElement.addEventListener('input', function () {
     globalGain = +gainSliderElement.value;
     gainDisplayElement.innerText = globalGain.toString();
 });
-var notes = ['c', 'cs', 'd', 'ds', 'e', 'f', 'fs', 'g', 'gs', 'a', 'as', 'b'];
-function enableConditioning() {
-    conditioned = true;
-    conditioningOffElem.checked = false;
-    conditioningOnElem.checked = true;
-    conditioningControlsElem.classList.remove('inactive');
-    conditioningControlsElem.classList.remove('midicondition');
-    updateConditioningParams();
-}
-function disableConditioning() {
-    conditioned = false;
-    conditioningOffElem.checked = true;
-    conditioningOnElem.checked = false;
-    conditioningControlsElem.classList.add('inactive');
-    conditioningControlsElem.classList.remove('midicondition');
-    updateConditioningParams();
-}
 function updateConditioningParams() {
     if (noteDensityEncoding != null) {
         noteDensityEncoding.dispose();
@@ -37903,17 +37879,9 @@ document.getElementById('reset-rnn').onclick = function () {
 };
 function getConditioning() {
     return tf.tidy(function () {
-        if (!conditioned) {
-            var size = 1 + noteDensityEncoding.shape[0] +
-                pitchDistribution.shape[0];
-            var conditioning = tf.oneHot(tf.tensor1d([0], 'int32'), size).as1D();
-            return conditioning;
-        }
-        else {
-            var axis = 0;
-            var conditioningValues = noteDensityEncoding.concat(pitchDistribution, axis);
-            return tf.tensor1d([0], 'int32').concat(conditioningValues, axis);
-        }
+        var axis = 0;
+        var conditioningValues = noteDensityEncoding.concat(pitchDistribution, axis);
+        return tf.tensor1d([0], 'int32').concat(conditioningValues, axis);
     });
 }
 function generateStep(loopId) {
