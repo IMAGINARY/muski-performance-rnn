@@ -37711,6 +37711,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var tf = require("@tensorflow/tfjs-core");
 var keyboard_element_1 = require("./keyboard_element");
+var DEFAULT_PITCH_WEIGHTS = [2, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1];
 var Piano = require('tone-piano').Piano;
 var lstmKernel1;
 var lstmBias1;
@@ -37732,9 +37733,9 @@ var MAX_GENERATION_LAG_SECONDS = 1;
 var MAX_NOTE_DURATION_SECONDS = 3;
 var NOTES_PER_OCTAVE = 12;
 var DENSITY_BIN_RANGES = [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0];
-var PITCH_HISTOGRAM_SIZE = NOTES_PER_OCTAVE;
+var PITCH_WEIGHT_SIZE = NOTES_PER_OCTAVE;
 var RESET_RNN_FREQUENCY_MS = 30000;
-var pitchHistogramEncoding;
+var pitchDistribution;
 var noteDensityEncoding;
 var conditioned = false;
 var currentPianoTimeSec = 0;
@@ -37850,8 +37851,6 @@ gainSliderElement.addEventListener('input', function () {
     gainDisplayElement.innerText = globalGain.toString();
 });
 var notes = ['c', 'cs', 'd', 'ds', 'e', 'f', 'fs', 'g', 'gs', 'a', 'as', 'b'];
-var pitchHistogramElements = notes.map(function (note) { return document.getElementById('pitch-' + note); });
-var histogramDisplayElements = notes.map(function (note) { return document.getElementById('hist-' + note); });
 function enableConditioning() {
     conditioned = true;
     conditioningOffElem.checked = false;
@@ -37869,10 +37868,6 @@ function disableConditioning() {
     updateConditioningParams();
 }
 function updateConditioningParams() {
-    var pitchHistogram = pitchHistogramElements.map(function (e) {
-        return parseInt(e.value, 10) || 0;
-    });
-    updateDisplayHistogram(pitchHistogram);
     if (noteDensityEncoding != null) {
         noteDensityEncoding.dispose();
         noteDensityEncoding = null;
@@ -37882,34 +37877,27 @@ function updateConditioningParams() {
     densityDisplay.innerHTML = noteDensity.toString();
     noteDensityEncoding =
         tf.oneHot(tf.tensor1d([noteDensityIdx + 1], 'int32'), DENSITY_BIN_RANGES.length + 1).as1D();
-    if (pitchHistogramEncoding != null) {
-        pitchHistogramEncoding.dispose();
-        pitchHistogramEncoding = null;
+}
+function setPitchWeights(values) {
+    if (PITCH_WEIGHT_SIZE != values.length) {
+        throw new Error("Wrong number of pitch weights (should be " + PITCH_WEIGHT_SIZE + ")");
     }
-    var buffer = tf.buffer([PITCH_HISTOGRAM_SIZE], 'float32');
-    var pitchHistogramTotal = pitchHistogram.reduce(function (prev, val) {
+    if (pitchDistribution != null) {
+        pitchDistribution.dispose();
+        pitchDistribution = null;
+    }
+    var buffer = tf.buffer([PITCH_WEIGHT_SIZE], 'float32');
+    var totalWeight = values.reduce(function (prev, val) {
         return prev + val;
     });
-    for (var i = 0; i < PITCH_HISTOGRAM_SIZE; i++) {
-        buffer.set(pitchHistogram[i] / pitchHistogramTotal, i);
+    for (var i = 0; i < PITCH_WEIGHT_SIZE; i++) {
+        buffer.set(values[i] / totalWeight, i);
     }
-    pitchHistogramEncoding = buffer.toTensor();
+    pitchDistribution = buffer.toTensor();
 }
+setPitchWeights(DEFAULT_PITCH_WEIGHTS);
 document.getElementById('note-density').oninput = updateConditioningParams;
-pitchHistogramElements.forEach(function (e) {
-    e.oninput = updateConditioningParams;
-});
 updateConditioningParams();
-function updateDisplayHistogram(hist) {
-    var sum = 0;
-    for (var i = 0; i < hist.length; i++) {
-        sum += hist[i];
-    }
-    for (var i = 0; i < hist.length; i++) {
-        histogramDisplayElements[i].style.height =
-            (100 * (hist[i] / sum)).toString() + 'px';
-    }
-}
 document.getElementById('reset-rnn').onclick = function () {
     resetRnn();
 };
@@ -37917,13 +37905,13 @@ function getConditioning() {
     return tf.tidy(function () {
         if (!conditioned) {
             var size = 1 + noteDensityEncoding.shape[0] +
-                pitchHistogramEncoding.shape[0];
+                pitchDistribution.shape[0];
             var conditioning = tf.oneHot(tf.tensor1d([0], 'int32'), size).as1D();
             return conditioning;
         }
         else {
             var axis = 0;
-            var conditioningValues = noteDensityEncoding.concat(pitchHistogramEncoding, axis);
+            var conditioningValues = noteDensityEncoding.concat(pitchDistribution, axis);
             return tf.tensor1d([0], 'int32').concat(conditioningValues, axis);
         }
     });
