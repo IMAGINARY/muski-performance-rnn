@@ -125,10 +125,6 @@ function start() {
                         tf.loadWeights(manifest, CHECKPOINT_URL));
         })
         .then((vars: { [varName: string]: tf.Tensor }) => {
-            document.querySelector('#status').classList.add('hidden');
-            document.querySelector('#controls').classList.remove('hidden');
-            document.querySelector('#keyboard').classList.remove('hidden');
-
             lstmKernel1 =
                 vars['rnn/multi_rnn_cell/cell_0/basic_lstm_cell/kernel'] as
                     tf.Tensor2D;
