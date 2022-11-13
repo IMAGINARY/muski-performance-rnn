@@ -14,6 +14,7 @@ limitations under the License.
 ==============================================================================*/
 import * as tf from '@tensorflow/tfjs-core';
 import {KeyboardElement} from './keyboard_element';
+import './main';
 
 // C Major scale.
 const DEFAULT_PITCH_WEIGHTS = [2, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1];
@@ -380,9 +381,8 @@ function playOutput(index: number) {
 
 // Reset the RNN repeatedly so it doesn't trail off into incoherent musical
 // babble.
-const resettingText = document.getElementById('resettingText');
-
 function resetRnnRepeatedly() {
+    const resettingText = document.getElementById('resettingText');
     if (modelReady) {
         resetRnn();
         resettingText.style.opacity = '100';

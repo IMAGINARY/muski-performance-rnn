@@ -37673,6 +37673,94 @@ var Note = (function () {
 
 },{}],109:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var muski_performance_rnn_ui_1 = require("./muski-performance-rnn-ui");
+$('[data-component="muski-performance-rnn-ui"]').each(function (i, el) {
+    var $el = $(el);
+    var ui = new muski_performance_rnn_ui_1.default();
+    $el.replaceWith(ui.$element);
+});
+
+},{"./muski-performance-rnn-ui":110}],110:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var MuskiPerformanceRnnUi = (function () {
+    function MuskiPerformanceRnnUi(options) {
+        if (options === void 0) { options = {}; }
+        this.$element = $('<div></div>')
+            .addClass('muski-performance-rnn-ui');
+        this.$noteDensityInput = $('<input />')
+            .attr('type', 'range')
+            .addClass(['form-range'])
+            .attr({
+            id: 'note-density',
+            min: 0,
+            max: 6,
+            value: 2,
+        });
+        this.$gainInput = $('<input />')
+            .attr('type', 'range')
+            .addClass(['form-range'])
+            .attr({
+            id: 'gain',
+            min: 0,
+            max: 200,
+            value: 100,
+        });
+        this.$status = $('<div></div>')
+            .attr('id', 'resettingText')
+            .addClass(['text-center', 'mb-3'])
+            .css('opacity', 0)
+            .append($('<div></div>')
+            .addClass(['badge', 'text-bg-warning'])
+            .text('Resetting...'));
+        $('<div></div>')
+            .addClass(['row', 'justify-content-center'])
+            .append($('<div></div>')
+            .addClass(['col-lg-6', 'col-md-8'])
+            .append($('<div></div>')
+            .addClass(['row', 'mt-4 mb-3'])
+            .append($('<div></div>')
+            .addClass(['col'])
+            .append($('<div></div>')
+            .append($('<label></label>')
+            .attr('for', 'note-density')
+            .addClass(['form-label', 'd-block', 'mb-0'])
+            .html('Note Density (<span id="note-density-display"></span>)')))
+            .append(this.$noteDensityInput)
+            .append($('<label></label>')
+            .attr('for', 'gain')
+            .addClass(['form-label', 'd-block', 'mb-0'])
+            .html('Gain (<span id="gain-display"></span>%)'))
+            .append(this.$gainInput))
+            .append($('<div></div>')
+            .addClass(['col'])
+            .append($('<button></button>')
+            .attr({
+            type: 'button',
+            id: 'start-pause-button',
+            disabled: true,
+        })
+            .addClass(['btn', 'btn-primary', 'btn-lg', 'disabled', 'me-2'])
+            .text('Play'))
+            .append($('<button></button>')
+            .attr({
+            type: 'button',
+            id: 'reset-rnn',
+        })
+            .addClass(['btn', 'btn-warning'])
+            .text('Reset RNN'))))
+            .append($('<div></div>')
+            .addClass(['col'])
+            .append(this.$status)))
+            .appendTo(this.$element);
+    }
+    return MuskiPerformanceRnnUi;
+}());
+exports.default = MuskiPerformanceRnnUi;
+
+},{}],111:[function(require,module,exports){
+"use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -37711,6 +37799,7 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 Object.defineProperty(exports, "__esModule", { value: true });
 var tf = require("@tensorflow/tfjs-core");
 var keyboard_element_1 = require("./keyboard_element");
+require("./main");
 var DEFAULT_PITCH_WEIGHTS = [2, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1];
 var Piano = require('tone-piano').Piano;
 var lstmKernel1;
@@ -37996,8 +38085,8 @@ function playOutput(index) {
     }
     throw new Error("Could not decode index: " + index);
 }
-var resettingText = document.getElementById('resettingText');
 function resetRnnRepeatedly() {
+    var resettingText = document.getElementById('resettingText');
     if (modelReady) {
         resetRnn();
         resettingText.style.opacity = '100';
@@ -38039,5 +38128,5 @@ startButton.addEventListener('click', function () {
     }
 });
 
-},{"./keyboard_element":108,"@tensorflow/tfjs-core":8,"tone-piano":106}]},{},[109])(109)
+},{"./keyboard_element":108,"./main":109,"@tensorflow/tfjs-core":8,"tone-piano":106}]},{},[111])(111)
 });

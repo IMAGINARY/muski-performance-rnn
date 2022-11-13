@@ -25,32 +25,7 @@ limitations under the License.
     <div class="row">
       <div class="col">
         <div data-component="muski-performance-rnn-ui"></div>
-        <div class="row justify-content-center">
-          <div class="col-lg-4 col-md-6">
-            <div class="row mt-4 mb-3">
-              <div class="col">
-                <div>
-                  <label for="note-density" class="form-label d-block mb-0">Note Density (<span id="note-density-display"></span>)</label>
-                  <input type="range" class="form-range" min="0" max="6" value="2" id="note-density"><br />
-                </div>
-                <div>
-                  <label for="gain" class="form-label d-block mb-0">Gain (<span id="gain-display"></span>%)</label>
-                  <input type="range" class="form-range" id="gain" min=0 max=200 value=100></input>
-                </div>
-              </div>
-              <div class="col">
-                <button type="button" id="start-pause-button" disabled class="btn btn-primary btn-lg disabled">Play</button>
-                <button type="button" id="reset-rnn" class="btn btn-warning">Reset RNN</button>
-              </div>
-            </div>
-          </div>
-        </div>
         <div id="keyboard"></div>
-        <div id="resettingText" style="opacity: 0" class="text-center">
-          <div class="badge text-bg-warning">
-            Resetting...
-          </div>
-        </div>
       </div>
     </div>
   </div>
