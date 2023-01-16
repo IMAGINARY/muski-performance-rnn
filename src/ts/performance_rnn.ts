@@ -13,473 +13,475 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 import * as tf from '@tensorflow/tfjs-core';
-import './main';
+
+export default async function init() {
 
 // C Major scale.
-const DEFAULT_PITCH_WEIGHTS = [2, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1];
+    const DEFAULT_PITCH_WEIGHTS = [2, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1];
 
 // tslint:disable-next-line:no-require-imports
-const Piano = require('tone-piano').Piano;
+    const Piano = require('tone-piano').Piano;
 
-let lstmKernel1: tf.Tensor2D;
-let lstmBias1: tf.Tensor1D;
-let lstmKernel2: tf.Tensor2D;
-let lstmBias2: tf.Tensor1D;
-let lstmKernel3: tf.Tensor2D;
-let lstmBias3: tf.Tensor1D;
-let c: tf.Tensor2D[];
-let h: tf.Tensor2D[];
-let fcB: tf.Tensor1D;
-let fcW: tf.Tensor2D;
-const forgetBias = tf.scalar(1.0);
-const activeNotes = new Map<number, number>();
+    let lstmKernel1: tf.Tensor2D;
+    let lstmBias1: tf.Tensor1D;
+    let lstmKernel2: tf.Tensor2D;
+    let lstmBias2: tf.Tensor1D;
+    let lstmKernel3: tf.Tensor2D;
+    let lstmBias3: tf.Tensor1D;
+    let c: tf.Tensor2D[];
+    let h: tf.Tensor2D[];
+    let fcB: tf.Tensor1D;
+    let fcW: tf.Tensor2D;
+    const forgetBias = tf.scalar(1.0);
+    const activeNotes = new Map<number, number>();
 
-let stepTimeout: NodeJS.Timer = null;
-let resetTimeout: NodeJS.Timer = null;
+    let stepTimeout: NodeJS.Timer = null;
+    let resetTimeout: NodeJS.Timer = null;
 
 // How many steps to generate per generateStep call.
 // Generating more steps makes it less likely that we'll lag behind in note
 // generation. Generating fewer steps makes it less likely that the browser UI
 // thread will be starved for cycles.
-const STEPS_PER_GENERATE_CALL = 10;
+    const STEPS_PER_GENERATE_CALL = 10;
 // How much time to try to generate ahead. More time means fewer buffer
 // underruns, but also makes the lag from UI change to output larger.
-const GENERATION_BUFFER_SECONDS = .5;
+    const GENERATION_BUFFER_SECONDS = .5;
 // If we're this far behind, reset currentTime time to piano.now().
-const MAX_GENERATION_LAG_SECONDS = 1;
+    const MAX_GENERATION_LAG_SECONDS = 1;
 // If a note is held longer than this, release it.
-const MAX_NOTE_DURATION_SECONDS = 3;
+    const MAX_NOTE_DURATION_SECONDS = 3;
 
-const NOTES_PER_OCTAVE = 12;
-const DENSITY_BIN_RANGES = [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0];
-const PITCH_WEIGHT_SIZE = NOTES_PER_OCTAVE;
+    const NOTES_PER_OCTAVE = 12;
+    const DENSITY_BIN_RANGES = [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0];
+    const PITCH_WEIGHT_SIZE = NOTES_PER_OCTAVE;
 
-const RESET_RNN_FREQUENCY_MS = 30000;
+    const RESET_RNN_FREQUENCY_MS = 30000;
 
-let pitchDistribution: tf.Tensor1D;
-let noteDensityEncoding: tf.Tensor1D;
+    let pitchDistribution: tf.Tensor1D;
+    let noteDensityEncoding: tf.Tensor1D;
 
-let currentPianoTimeSec = 0;
-let currentVelocity = 100;
+    let currentPianoTimeSec = 0;
+    let currentVelocity = 100;
 
-const MIN_MIDI_PITCH = 0;
-const MAX_MIDI_PITCH = 127;
-const VELOCITY_BINS = 32;
-const MAX_SHIFT_STEPS = 100;
-const STEPS_PER_SECOND = 100;
+    const MIN_MIDI_PITCH = 0;
+    const MAX_MIDI_PITCH = 127;
+    const VELOCITY_BINS = 32;
+    const MAX_SHIFT_STEPS = 100;
+    const STEPS_PER_SECOND = 100;
 
 // The unique id of the currently scheduled setTimeout loop.
-let currentLoopId = 0;
+    let currentLoopId = 0;
 
-const EVENT_RANGES = [
-    ['note_on', MIN_MIDI_PITCH, MAX_MIDI_PITCH],
-    ['note_off', MIN_MIDI_PITCH, MAX_MIDI_PITCH],
-    ['time_shift', 1, MAX_SHIFT_STEPS],
-    ['velocity_change', 1, VELOCITY_BINS],
-];
+    const EVENT_RANGES = [
+        ['note_on', MIN_MIDI_PITCH, MAX_MIDI_PITCH],
+        ['note_off', MIN_MIDI_PITCH, MAX_MIDI_PITCH],
+        ['time_shift', 1, MAX_SHIFT_STEPS],
+        ['velocity_change', 1, VELOCITY_BINS],
+    ];
 
-function calculateEventSize(): number {
-    let eventOffset = 0;
-    for (const eventRange of EVENT_RANGES) {
-        const minValue = eventRange[1] as number;
-        const maxValue = eventRange[2] as number;
-        eventOffset += maxValue - minValue + 1;
+    function calculateEventSize(): number {
+        let eventOffset = 0;
+        for (const eventRange of EVENT_RANGES) {
+            const minValue = eventRange[1] as number;
+            const maxValue = eventRange[2] as number;
+            eventOffset += maxValue - minValue + 1;
+        }
+        return eventOffset;
     }
-    return eventOffset;
-}
 
-const EVENT_SIZE = calculateEventSize();
-const PRIMER_IDX = 355;  // shift 1s.
-let lastSample = tf.scalar(PRIMER_IDX, 'int32');
+    const EVENT_SIZE = calculateEventSize();
+    const PRIMER_IDX = 355;  // shift 1s.
+    let lastSample = tf.scalar(PRIMER_IDX, 'int32');
 
-const container = document.querySelector('#keyboard');
+    const container = document.querySelector('#keyboard');
 
-const piano = new Piano({velocities: 4}).toMaster();
+    const piano = new Piano({velocities: 4}).toMaster();
 
-const SALAMANDER_URL = '/soundfonts/salamander-piano/';
-const CHECKPOINT_URL = '/checkpoints/performance-rnn-tfjs';
+    const SALAMANDER_URL = '/soundfonts/salamander-piano/';
+    const CHECKPOINT_URL = '/checkpoints/performance-rnn-tfjs';
 
-const isDeviceSupported = tf.ENV.get('WEBGL_VERSION') >= 1;
+    const isDeviceSupported = tf.ENV.get('WEBGL_VERSION') >= 1;
 
-if (!isDeviceSupported) {
-    document.querySelector('#status').innerHTML =
-        'We do not yet support your device. Please try on a desktop ' +
-        'computer with Chrome/Firefox, or an Android phone with WebGL support.';
-} else {
-    start();
-}
+    let modelReady = false;
+    let modelRunning = false;
 
-let modelReady = false;
-let modelRunning = false;
+    let startButton = document.querySelector('#start-pause-button') as HTMLButtonElement;
+    let inputPad = document.getElementById('input-pad') as HTMLInputElement;
+    let inputPadPointer = inputPad.querySelector('.pointer') as HTMLInputElement;
 
-let startButton = document.querySelector('#start-pause-button') as HTMLButtonElement;
-let inputPad = document.getElementById('input-pad') as HTMLInputElement;
-let inputPadPointer = inputPad.querySelector('.pointer') as HTMLInputElement;
-
-function start() {
-    piano.load(SALAMANDER_URL)
-        .then(() => {
-            return fetch(`${CHECKPOINT_URL}/weights_manifest.json`)
+    async function start() {
+        console.log('startButton', startButton);
+        await piano.load(SALAMANDER_URL)
+          .then(() => {
+              return fetch(`${CHECKPOINT_URL}/weights_manifest.json`)
                 .then((response) => response.json())
                 .then(
-                    (manifest: tf.WeightsManifestConfig) =>
-                        tf.loadWeights(manifest, CHECKPOINT_URL));
-        })
-        .then((vars: { [varName: string]: tf.Tensor }) => {
-            lstmKernel1 =
+                  (manifest: tf.WeightsManifestConfig) =>
+                    tf.loadWeights(manifest, CHECKPOINT_URL));
+          })
+          .then((vars: { [varName: string]: tf.Tensor }) => {
+              lstmKernel1 =
                 vars['rnn/multi_rnn_cell/cell_0/basic_lstm_cell/kernel'] as
-                    tf.Tensor2D;
-            lstmBias1 = vars['rnn/multi_rnn_cell/cell_0/basic_lstm_cell/bias'] as
+                  tf.Tensor2D;
+              lstmBias1 = vars['rnn/multi_rnn_cell/cell_0/basic_lstm_cell/bias'] as
                 tf.Tensor1D;
 
-            lstmKernel2 =
+              lstmKernel2 =
                 vars['rnn/multi_rnn_cell/cell_1/basic_lstm_cell/kernel'] as
-                    tf.Tensor2D;
-            lstmBias2 = vars['rnn/multi_rnn_cell/cell_1/basic_lstm_cell/bias'] as
+                  tf.Tensor2D;
+              lstmBias2 = vars['rnn/multi_rnn_cell/cell_1/basic_lstm_cell/bias'] as
                 tf.Tensor1D;
 
-            lstmKernel3 =
+              lstmKernel3 =
                 vars['rnn/multi_rnn_cell/cell_2/basic_lstm_cell/kernel'] as
-                    tf.Tensor2D;
-            lstmBias3 = vars['rnn/multi_rnn_cell/cell_2/basic_lstm_cell/bias'] as
+                  tf.Tensor2D;
+              lstmBias3 = vars['rnn/multi_rnn_cell/cell_2/basic_lstm_cell/bias'] as
                 tf.Tensor1D;
 
-            fcB = vars['fully_connected/biases'] as tf.Tensor1D;
-            fcW = vars['fully_connected/weights'] as tf.Tensor2D;
-            modelReady = true;
-            enableResumeButton();
-        });
-}
-
-function resetRnn() {
-    c = [
-        tf.zeros([1, lstmBias1.shape[0] / 4]),
-        tf.zeros([1, lstmBias2.shape[0] / 4]),
-        tf.zeros([1, lstmBias3.shape[0] / 4]),
-    ];
-    h = [
-        tf.zeros([1, lstmBias1.shape[0] / 4]),
-        tf.zeros([1, lstmBias2.shape[0] / 4]),
-        tf.zeros([1, lstmBias3.shape[0] / 4]),
-    ];
-    if (lastSample != null) {
-        lastSample.dispose();
+              fcB = vars['fully_connected/biases'] as tf.Tensor1D;
+              fcW = vars['fully_connected/weights'] as tf.Tensor2D;
+              modelReady = true;
+              enableResumeButton();
+          });
     }
-    lastSample = tf.scalar(PRIMER_IDX, 'int32');
-    currentPianoTimeSec = piano.now();
-    currentLoopId++;
-    generateStep(currentLoopId);
-}
 
-const densityControl =
-    document.getElementById('note-density') as HTMLInputElement;
-const densityDisplay = document.getElementById('note-density-display');
+    function resetRnn() {
+        c = [
+            tf.zeros([1, lstmBias1.shape[0] / 4]),
+            tf.zeros([1, lstmBias2.shape[0] / 4]),
+            tf.zeros([1, lstmBias3.shape[0] / 4]),
+        ];
+        h = [
+            tf.zeros([1, lstmBias1.shape[0] / 4]),
+            tf.zeros([1, lstmBias2.shape[0] / 4]),
+            tf.zeros([1, lstmBias3.shape[0] / 4]),
+        ];
+        if (lastSample != null) {
+            lastSample.dispose();
+        }
+        lastSample = tf.scalar(PRIMER_IDX, 'int32');
+        currentPianoTimeSec = piano.now();
+        currentLoopId++;
+        generateStep(currentLoopId);
+    }
 
-const gainSliderElement = document.getElementById('gain') as HTMLInputElement;
-const gainDisplayElement =
-    document.getElementById('gain-display') as HTMLSpanElement;
-let globalGain = +gainSliderElement.value;
-gainDisplayElement.innerText = globalGain.toString();
-gainSliderElement.addEventListener('input', () => {
-    globalGain = +gainSliderElement.value;
+    const densityControl =
+      document.getElementById('note-density') as HTMLInputElement;
+    const densityDisplay = document.getElementById('note-density-display');
+
+    const gainSliderElement = document.getElementById('gain') as HTMLInputElement;
+    const gainDisplayElement =
+      document.getElementById('gain-display') as HTMLSpanElement;
+    let globalGain = +gainSliderElement.value;
     gainDisplayElement.innerText = globalGain.toString();
-});
+    gainSliderElement.addEventListener('input', () => {
+        globalGain = +gainSliderElement.value;
+        gainDisplayElement.innerText = globalGain.toString();
+    });
 
-function updateConditioningParams() {
-    if (noteDensityEncoding != null) {
-        noteDensityEncoding.dispose();
-        noteDensityEncoding = null;
-    }
+    function updateConditioningParams() {
+        if (noteDensityEncoding != null) {
+            noteDensityEncoding.dispose();
+            noteDensityEncoding = null;
+        }
 
-    const noteDensityIdx = parseInt(densityControl.value, 10) || 0;
-    const noteDensity = DENSITY_BIN_RANGES[noteDensityIdx];
-    densityDisplay.innerHTML = noteDensity.toString();
+        const noteDensityIdx = parseInt(densityControl.value, 10) || 0;
+        const noteDensity = DENSITY_BIN_RANGES[noteDensityIdx];
+        densityDisplay.innerHTML = noteDensity.toString();
 
-    noteDensityEncoding =
-        tf.oneHot(
+        noteDensityEncoding =
+          tf.oneHot(
             tf.tensor1d([noteDensityIdx + 1], 'int32'),
             DENSITY_BIN_RANGES.length + 1).as1D();
-}
-
-/**
- * Set the relative frequency of the notes generated by the model.
- *
- * @param values
- *  An array of 12 numbers, one for each note, representing the relative
- *  frequency of each note. The numbers do not need to sum to 1.
- */
-function setPitchWeights(values: Array<number>) {
-    if (PITCH_WEIGHT_SIZE != values.length) {
-        throw new Error(`Wrong number of pitch weights (should be ${PITCH_WEIGHT_SIZE})`);
     }
 
-    if (pitchDistribution != null) {
-        pitchDistribution.dispose();
-        pitchDistribution = null;
-    }
-    const buffer = tf.buffer<tf.Rank.R1>([PITCH_WEIGHT_SIZE], 'float32');
-    const totalWeight = values.reduce((prev, val) => {
-        return prev + val;
-    });
-    for (let i = 0; i < PITCH_WEIGHT_SIZE; i++) {
-        buffer.set(values[i] / totalWeight, i);
-    }
-    pitchDistribution = buffer.toTensor();
-}
+    /**
+     * Set the relative frequency of the notes generated by the model.
+     *
+     * @param values
+     *  An array of 12 numbers, one for each note, representing the relative
+     *  frequency of each note. The numbers do not need to sum to 1.
+     */
+    function setPitchWeights(values: Array<number>) {
+        if (PITCH_WEIGHT_SIZE != values.length) {
+            throw new Error(`Wrong number of pitch weights (should be ${PITCH_WEIGHT_SIZE})`);
+        }
 
-setPitchWeights(DEFAULT_PITCH_WEIGHTS);
-document.getElementById('note-density').oninput = updateConditioningParams;
-updateConditioningParams();
-
-document.getElementById('reset-rnn').onclick = () => {
-    resetRnn();
-};
-
-function getConditioning(): tf.Tensor1D {
-    return tf.tidy(() => {
-        const axis = 0;
-        const conditioningValues =
-            noteDensityEncoding.concat(pitchDistribution, axis);
-        return tf.tensor1d([0], 'int32').concat(conditioningValues, axis);
-    });
-}
-
-async function generateStep(loopId: number) {
-    if (loopId < currentLoopId) {
-        // Was part of an outdated generateStep() scheduled via setTimeout.
-        return;
+        if (pitchDistribution != null) {
+            pitchDistribution.dispose();
+            pitchDistribution = null;
+        }
+        const buffer = tf.buffer<tf.Rank.R1>([PITCH_WEIGHT_SIZE], 'float32');
+        const totalWeight = values.reduce((prev, val) => {
+            return prev + val;
+        });
+        for (let i = 0; i < PITCH_WEIGHT_SIZE; i++) {
+            buffer.set(values[i] / totalWeight, i);
+        }
+        pitchDistribution = buffer.toTensor();
     }
 
-    const lstm1 = (data: tf.Tensor2D, c: tf.Tensor2D, h: tf.Tensor2D) =>
-        tf.basicLSTMCell(forgetBias, lstmKernel1, lstmBias1, data, c, h);
-    const lstm2 = (data: tf.Tensor2D, c: tf.Tensor2D, h: tf.Tensor2D) =>
-        tf.basicLSTMCell(forgetBias, lstmKernel2, lstmBias2, data, c, h);
-    const lstm3 = (data: tf.Tensor2D, c: tf.Tensor2D, h: tf.Tensor2D) =>
-        tf.basicLSTMCell(forgetBias, lstmKernel3, lstmBias3, data, c, h);
+    setPitchWeights(DEFAULT_PITCH_WEIGHTS);
+    document.getElementById('note-density').oninput = updateConditioningParams;
+    updateConditioningParams();
 
-    let outputs: tf.Scalar[] = [];
-    [c, h, outputs] = tf.tidy(() => {
-        // Generate some notes.
-        const innerOuts: tf.Scalar[] = [];
-        for (let i = 0; i < STEPS_PER_GENERATE_CALL; i++) {
-            // Use last sampled output as the next input.
-            const eventInput = tf.oneHot(
-                lastSample.as1D(), EVENT_SIZE).as1D();
-            // Dispose the last sample from the previous generate call, since we
-            // kept it.
-            if (i === 0) {
-                lastSample.dispose();
-            }
-            const conditioning = getConditioning();
+    document.getElementById('reset-rnn').onclick = () => {
+        resetRnn();
+    };
+
+    function getConditioning(): tf.Tensor1D {
+        return tf.tidy(() => {
             const axis = 0;
-            const input = conditioning.concat(eventInput, axis).toFloat();
-            const output =
-                tf.multiRNNCell([lstm1, lstm2, lstm3], input.as2D(1, -1), c, h);
-            c.forEach(c => c.dispose());
-            h.forEach(h => h.dispose());
-            c = output[0];
-            h = output[1];
+            const conditioningValues =
+              noteDensityEncoding.concat(pitchDistribution, axis);
+            return tf.tensor1d([0], 'int32').concat(conditioningValues, axis);
+        });
+    }
 
-            const outputH = h[2];
-            const logits = outputH.matMul(fcW).add(fcB);
-
-            const sampledOutput = tf.multinomial(logits.as1D(), 1).asScalar();
-
-            innerOuts.push(sampledOutput);
-            lastSample = sampledOutput;
+    async function generateStep(loopId: number) {
+        if (loopId < currentLoopId) {
+            // Was part of an outdated generateStep() scheduled via setTimeout.
+            return;
         }
-        return [c, h, innerOuts] as [tf.Tensor2D[], tf.Tensor2D[], tf.Scalar[]];
-    });
 
-    for (let i = 0; i < outputs.length; i++) {
-        playOutput(outputs[i].dataSync()[0]);
-    }
+        const lstm1 = (data: tf.Tensor2D, c: tf.Tensor2D, h: tf.Tensor2D) =>
+          tf.basicLSTMCell(forgetBias, lstmKernel1, lstmBias1, data, c, h);
+        const lstm2 = (data: tf.Tensor2D, c: tf.Tensor2D, h: tf.Tensor2D) =>
+          tf.basicLSTMCell(forgetBias, lstmKernel2, lstmBias2, data, c, h);
+        const lstm3 = (data: tf.Tensor2D, c: tf.Tensor2D, h: tf.Tensor2D) =>
+          tf.basicLSTMCell(forgetBias, lstmKernel3, lstmBias3, data, c, h);
 
-    if (piano.now() - currentPianoTimeSec > MAX_GENERATION_LAG_SECONDS) {
-        console.warn(
-            `Generation is ${piano.now() - currentPianoTimeSec} seconds behind, ` +
-            `which is over ${MAX_NOTE_DURATION_SECONDS}. Resetting time!`);
-        currentPianoTimeSec = piano.now();
-    }
-    const delta = Math.max(
-        0, currentPianoTimeSec - piano.now() - GENERATION_BUFFER_SECONDS);
-    stepTimeout = setTimeout(() => generateStep(loopId), delta * 1000);
-}
-
-/**
- * Decode the output index and play it on the piano and keyboardInterface.
- */
-function playOutput(index: number) {
-    let offset = 0;
-    for (const eventRange of EVENT_RANGES) {
-        const eventType = eventRange[0] as string;
-        const minValue = eventRange[1] as number;
-        const maxValue = eventRange[2] as number;
-        if (offset <= index && index <= offset + maxValue - minValue) {
-            if (eventType === 'note_on') {
-                const noteNum = index - offset;
-                activeNotes.set(noteNum, currentPianoTimeSec);
-
-                return piano.keyDown(
-                    noteNum, currentPianoTimeSec, currentVelocity * globalGain / 100);
-            } else if (eventType === 'note_off') {
-                const noteNum = index - offset;
-
-                const activeNoteEndTimeSec = activeNotes.get(noteNum);
-                // If the note off event is generated for a note that hasn't been
-                // pressed, just ignore it.
-                if (activeNoteEndTimeSec == null) {
-                    return;
+        let outputs: tf.Scalar[] = [];
+        [c, h, outputs] = tf.tidy(() => {
+            // Generate some notes.
+            const innerOuts: tf.Scalar[] = [];
+            for (let i = 0; i < STEPS_PER_GENERATE_CALL; i++) {
+                // Use last sampled output as the next input.
+                const eventInput = tf.oneHot(
+                  lastSample.as1D(), EVENT_SIZE).as1D();
+                // Dispose the last sample from the previous generate call, since we
+                // kept it.
+                if (i === 0) {
+                    lastSample.dispose();
                 }
-                const timeSec =
-                    Math.max(currentPianoTimeSec, activeNoteEndTimeSec + .5);
+                const conditioning = getConditioning();
+                const axis = 0;
+                const input = conditioning.concat(eventInput, axis).toFloat();
+                const output =
+                  tf.multiRNNCell([lstm1, lstm2, lstm3], input.as2D(1, -1), c, h);
+                c.forEach(c => c.dispose());
+                h.forEach(h => h.dispose());
+                c = output[0];
+                h = output[1];
 
-                piano.keyUp(noteNum, timeSec);
-                activeNotes.delete(noteNum);
-                return;
-            } else if (eventType === 'time_shift') {
-                currentPianoTimeSec += (index - offset + 1) / STEPS_PER_SECOND;
-                activeNotes.forEach((timeSec, noteNum) => {
-                    if (currentPianoTimeSec - timeSec > MAX_NOTE_DURATION_SECONDS) {
-                        // console.info(
-                        //     `Note ${noteNum} has been active for ${
-                        //         currentPianoTimeSec - timeSec}, ` +
-                        //     `seconds which is over ${MAX_NOTE_DURATION_SECONDS}, will ` +
-                        //     `release.`);
+                const outputH = h[2];
+                const logits = outputH.matMul(fcW).add(fcB);
 
-                        piano.keyUp(noteNum, currentPianoTimeSec);
-                        activeNotes.delete(noteNum);
-                    }
-                });
-                return currentPianoTimeSec;
-            } else if (eventType === 'velocity_change') {
-                currentVelocity = (index - offset + 1) * Math.ceil(127 / VELOCITY_BINS);
-                currentVelocity = currentVelocity / 127;
-                return currentVelocity;
-            } else {
-                throw new Error('Could not decode eventType: ' + eventType);
+                const sampledOutput = tf.multinomial(logits.as1D(), 1).asScalar();
+
+                innerOuts.push(sampledOutput);
+                lastSample = sampledOutput;
             }
+            return [c, h, innerOuts] as [tf.Tensor2D[], tf.Tensor2D[], tf.Scalar[]];
+        });
+
+        for (let i = 0; i < outputs.length; i++) {
+            playOutput(outputs[i].dataSync()[0]);
         }
-        offset += maxValue - minValue + 1;
+
+        if (piano.now() - currentPianoTimeSec > MAX_GENERATION_LAG_SECONDS) {
+            console.warn(
+              `Generation is ${piano.now() - currentPianoTimeSec} seconds behind, ` +
+              `which is over ${MAX_NOTE_DURATION_SECONDS}. Resetting time!`);
+            currentPianoTimeSec = piano.now();
+        }
+        const delta = Math.max(
+          0, currentPianoTimeSec - piano.now() - GENERATION_BUFFER_SECONDS);
+        stepTimeout = setTimeout(() => generateStep(loopId), delta * 1000);
     }
-    throw new Error(`Could not decode index: ${index}`);
-}
+
+    /**
+     * Decode the output index and play it on the piano and keyboardInterface.
+     */
+    function playOutput(index: number) {
+        let offset = 0;
+        for (const eventRange of EVENT_RANGES) {
+            const eventType = eventRange[0] as string;
+            const minValue = eventRange[1] as number;
+            const maxValue = eventRange[2] as number;
+            if (offset <= index && index <= offset + maxValue - minValue) {
+                if (eventType === 'note_on') {
+                    const noteNum = index - offset;
+                    activeNotes.set(noteNum, currentPianoTimeSec);
+
+                    return piano.keyDown(
+                      noteNum, currentPianoTimeSec, currentVelocity * globalGain / 100);
+                } else if (eventType === 'note_off') {
+                    const noteNum = index - offset;
+
+                    const activeNoteEndTimeSec = activeNotes.get(noteNum);
+                    // If the note off event is generated for a note that hasn't been
+                    // pressed, just ignore it.
+                    if (activeNoteEndTimeSec == null) {
+                        return;
+                    }
+                    const timeSec =
+                      Math.max(currentPianoTimeSec, activeNoteEndTimeSec + .5);
+
+                    piano.keyUp(noteNum, timeSec);
+                    activeNotes.delete(noteNum);
+                    return;
+                } else if (eventType === 'time_shift') {
+                    currentPianoTimeSec += (index - offset + 1) / STEPS_PER_SECOND;
+                    activeNotes.forEach((timeSec, noteNum) => {
+                        if (currentPianoTimeSec - timeSec > MAX_NOTE_DURATION_SECONDS) {
+                            // console.info(
+                            //     `Note ${noteNum} has been active for ${
+                            //         currentPianoTimeSec - timeSec}, ` +
+                            //     `seconds which is over ${MAX_NOTE_DURATION_SECONDS}, will ` +
+                            //     `release.`);
+
+                            piano.keyUp(noteNum, currentPianoTimeSec);
+                            activeNotes.delete(noteNum);
+                        }
+                    });
+                    return currentPianoTimeSec;
+                } else if (eventType === 'velocity_change') {
+                    currentVelocity = (index - offset + 1) * Math.ceil(127 / VELOCITY_BINS);
+                    currentVelocity = currentVelocity / 127;
+                    return currentVelocity;
+                } else {
+                    throw new Error('Could not decode eventType: ' + eventType);
+                }
+            }
+            offset += maxValue - minValue + 1;
+        }
+        throw new Error(`Could not decode index: ${index}`);
+    }
 
 // Reset the RNN repeatedly so it doesn't trail off into incoherent musical
 // babble.
-function resetRnnRepeatedly() {
-    const resettingText = document.getElementById('resettingText');
-    if (modelReady) {
-        resetRnn();
-        resettingText.style.opacity = '100';
+    function resetRnnRepeatedly() {
+        const resettingText = document.getElementById('resettingText');
+        if (modelReady) {
+            resetRnn();
+            resettingText.style.opacity = '100';
+        }
+
+        setTimeout(() => {
+            resettingText.style.opacity = '0';
+        }, 1000);
+        resetTimeout = setTimeout(resetRnnRepeatedly, RESET_RNN_FREQUENCY_MS);
     }
 
-    setTimeout(() => {
-        resettingText.style.opacity = '0';
-    }, 1000);
-    resetTimeout = setTimeout(resetRnnRepeatedly, RESET_RNN_FREQUENCY_MS);
-}
-
-function pauseModel() {
-    if (stepTimeout != null) {
-        clearTimeout(stepTimeout);
-        stepTimeout = null;
+    function pauseModel() {
+        if (stepTimeout != null) {
+            clearTimeout(stepTimeout);
+            stepTimeout = null;
+        }
+        if (resetTimeout != null) {
+            clearTimeout(resetTimeout);
+            resetTimeout = null;
+        }
+        modelRunning = false;
     }
-    if (resetTimeout != null) {
-        clearTimeout(resetTimeout);
-        resetTimeout = null;
+
+    function startModel() {
+        if (modelReady) {
+            modelRunning = true;
+            resetRnnRepeatedly();
+        }
     }
-    modelRunning = false;
-}
 
-function startModel() {
-    if (modelReady) {
-        modelRunning = true;
-        resetRnnRepeatedly();
+    function enableResumeButton() {
+        startButton.removeAttribute('disabled');
+        startButton.classList.remove('disabled');
     }
-}
 
-function enableResumeButton() {
-    startButton.removeAttribute('disabled');
-    startButton.classList.remove('disabled');
-}
+    startButton.addEventListener('click', () => {
+        if (modelRunning) {
+            pauseModel();
+            startButton.innerHTML = 'Play';
+        } else {
+            startModel();
+            startButton.innerHTML = 'Pause';
+        }
+    });
 
-startButton.addEventListener('click', () => {
-    if (modelRunning) {
-        pauseModel();
-        startButton.innerHTML = 'Play';
-    } else {
+    const densityMin = parseFloat(densityControl.min);
+    const densityMax = parseFloat(densityControl.max);
+    const gainSliderElementMin = parseFloat(gainSliderElement.min);
+    const gainSliderElementMax = parseFloat(gainSliderElement.max);
+
+    function adjustParameters(clientX: number, clientY: number) {
+        const rect = inputPad.getBoundingClientRect();
+        const x = (clientX - rect.left) / rect.width;
+        const y = (clientY - rect.top) / rect.height;
+
+        const densityValue = densityMin + x * (densityMax - densityMin);
+        densityControl.value = densityValue.toString();
+
+        const gainValue = gainSliderElementMin + (1 - y) * (gainSliderElementMax - gainSliderElementMin);
+        gainSliderElement.value = gainValue.toString();
+
+        globalGain = +gainSliderElement.value;
+        gainDisplayElement.innerText = globalGain.toString();
+        updateConditioningParams();
+    }
+
+    let activePointerId: number = null;
+
+    function handlePointerOn(pointerId: number) {
+        activePointerId = pointerId;
+        inputPadPointer.classList.add('visible');
         startModel();
-        startButton.innerHTML = 'Pause';
     }
-});
 
-const densityMin = parseFloat(densityControl.min);
-const densityMax = parseFloat(densityControl.max);
-const gainSliderElementMin = parseFloat(gainSliderElement.min);
-const gainSliderElementMax = parseFloat(gainSliderElement.max);
-
-function adjustParameters(clientX : number, clientY : number) {
-    const rect = inputPad.getBoundingClientRect();
-    const x = (clientX - rect.left) / rect.width;
-    const y = (clientY - rect.top) / rect.height;
-
-    const densityValue = densityMin + x * (densityMax - densityMin);
-    densityControl.value = densityValue.toString();
-
-    const gainValue = gainSliderElementMin + (1 - y) * (gainSliderElementMax - gainSliderElementMin);
-    gainSliderElement.value = gainValue.toString();
-
-    globalGain = +gainSliderElement.value;
-    gainDisplayElement.innerText = globalGain.toString();
-    updateConditioningParams();
-}
-
-let activePointerId : number = null;
-
-function handlePointerOn(pointerId : number) {
-    activePointerId = pointerId;
-    inputPadPointer.classList.add('visible');
-    startModel();
-}
-
-function handlePointerOff() {
-    inputPadPointer.classList.remove('visible');
-    activePointerId = null;
-    if (modelRunning) {
-        pauseModel();
+    function handlePointerOff() {
+        inputPadPointer.classList.remove('visible');
+        activePointerId = null;
+        if (modelRunning) {
+            pauseModel();
+        }
     }
-}
 
-function handlePointerMove(clientX : number, clientY : number) {
-    // Now get the inputPad bounding rect that does not include the border
-    const rect = inputPad.getBoundingClientRect();
-    inputPadPointer.style.left = `${clientX - rect.left}px`;
-    inputPadPointer.style.top = `${clientY - rect.top}px`;
-}
-
-inputPad.addEventListener('pointerdown', (e) => {
-    handlePointerOn(e.pointerId);
-    handlePointerMove(e.clientX, e.clientY);
-    adjustParameters(e.clientX, e.clientY);
-});
-
-document.addEventListener('pointerup', (e) => {
-    if (e.pointerId === activePointerId) {
-        handlePointerOff();
+    function handlePointerMove(clientX: number, clientY: number) {
+        // Now get the inputPad bounding rect that does not include the border
+        const rect = inputPad.getBoundingClientRect();
+        inputPadPointer.style.left = `${clientX - rect.left}px`;
+        inputPadPointer.style.top = `${clientY - rect.top}px`;
     }
-});
 
-document.addEventListener('pointercancel', (e) => {
-    if (e.pointerId === activePointerId) {
-        handlePointerOff();
-    }
-});
-
-inputPad.addEventListener('pointermove', (e) => {
-    if (e.pointerId === activePointerId) {
+    inputPad.addEventListener('pointerdown', (e) => {
+        handlePointerOn(e.pointerId);
         handlePointerMove(e.clientX, e.clientY);
         adjustParameters(e.clientX, e.clientY);
-    }
-});
+    });
 
+    document.addEventListener('pointerup', (e) => {
+        if (e.pointerId === activePointerId) {
+            handlePointerOff();
+        }
+    });
+
+    document.addEventListener('pointercancel', (e) => {
+        if (e.pointerId === activePointerId) {
+            handlePointerOff();
+        }
+    });
+
+    inputPad.addEventListener('pointermove', (e) => {
+        if (e.pointerId === activePointerId) {
+            handlePointerMove(e.clientX, e.clientY);
+            adjustParameters(e.clientX, e.clientY);
+        }
+    });
+
+    if (!isDeviceSupported) {
+        document.querySelector('#status').innerHTML =
+          'We do not yet support your device. Please try on a desktop ' +
+          'computer with Chrome/Firefox, or an Android phone with WebGL support.';
+    } else {
+        await start();
+    }
+}

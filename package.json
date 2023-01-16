@@ -11,7 +11,7 @@
   },
   "scripts": {
     "build": "tsc",
-    "bundle": "browserify --standalone performance_rnn src/ts/performance_rnn.ts -p [tsify] > bundle.js",
+    "bundle": "browserify --standalone performance_rnn src/ts/main.ts -p [tsify] > bundle.js",
     "run-demo": "yarn bundle && http-server"
   },
   "devDependencies": {

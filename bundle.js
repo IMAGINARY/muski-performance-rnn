@@ -37605,83 +37605,68 @@ if ((typeof module) == 'object' && module.exports) {
 }));
 },{}],108:[function(require,module,exports){
 "use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-var offsets = [0, 0.5, 1, 1.5, 2, 3, 3.5, 4, 4.5, 5, 5.5, 6];
-var minNote = 21;
-var maxNote = 108;
-var KeyboardElement = (function () {
-    function KeyboardElement(container) {
-        this.container = container;
-        this.keys = {};
-        this.resize();
-        this.notes = {};
+var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
+    return new (P || (P = Promise))(function (resolve, reject) {
+        function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
+        function rejected(value) { try { step(generator["throw"](value)); } catch (e) { reject(e); } }
+        function step(result) { result.done ? resolve(result.value) : new P(function (resolve) { resolve(result.value); }).then(fulfilled, rejected); }
+        step((generator = generator.apply(thisArg, _arguments || [])).next());
+    });
+};
+var __generator = (this && this.__generator) || function (thisArg, body) {
+    var _ = { label: 0, sent: function() { if (t[0] & 1) throw t[1]; return t[1]; }, trys: [], ops: [] }, f, y, t, g;
+    return g = { next: verb(0), "throw": verb(1), "return": verb(2) }, typeof Symbol === "function" && (g[Symbol.iterator] = function() { return this; }), g;
+    function verb(n) { return function (v) { return step([n, v]); }; }
+    function step(op) {
+        if (f) throw new TypeError("Generator is already executing.");
+        while (_) try {
+            if (f = 1, y && (t = y[op[0] & 2 ? "return" : op[0] ? "throw" : "next"]) && !(t = t.call(y, op[1])).done) return t;
+            if (y = 0, t) op = [0, t.value];
+            switch (op[0]) {
+                case 0: case 1: t = op; break;
+                case 4: _.label++; return { value: op[1], done: false };
+                case 5: _.label++; y = op[1]; op = [0]; continue;
+                case 7: op = _.ops.pop(); _.trys.pop(); continue;
+                default:
+                    if (!(t = _.trys, t = t.length > 0 && t[t.length - 1]) && (op[0] === 6 || op[0] === 2)) { _ = 0; continue; }
+                    if (op[0] === 3 && (!t || (op[1] > t[0] && op[1] < t[3]))) { _.label = op[1]; break; }
+                    if (op[0] === 6 && _.label < t[1]) { _.label = t[1]; t = op; break; }
+                    if (t && _.label < t[2]) { _.label = t[2]; _.ops.push(op); break; }
+                    if (t[2]) _.ops.pop();
+                    _.trys.pop(); continue;
+            }
+            op = body.call(thisArg, _);
+        } catch (e) { op = [6, e]; y = 0; } finally { f = t = 0; }
+        if (op[0] & 5) throw op[1]; return { value: op[0] ? op[1] : void 0, done: true };
     }
-    KeyboardElement.prototype.resize = function () {
-        this.keys = {};
-        this.container.innerHTML = '';
-        var keyWidth = 1 / 52;
-        for (var i = minNote; i <= maxNote; i++) {
-            var key = document.createElement('div');
-            key.classList.add('key');
-            var isSharp = ([1, 3, 6, 8, 10].indexOf(i % 12) !== -1);
-            key.classList.add(isSharp ? 'black' : 'white');
-            this.container.appendChild(key);
-            var noteOctave = Math.floor(i / 12) - Math.floor(minNote / 12);
-            var offset = offsets[i % 12] + noteOctave * 7 - 5;
-            key.style.width = keyWidth * 100 + "%";
-            key.style.left = offset * keyWidth * 100 + "%";
-            key.id = i.toString();
-            var fill = document.createElement('div');
-            fill.classList.add('fill');
-            key.appendChild(fill);
-            this.keys[i] = key;
-        }
-    };
-    KeyboardElement.prototype.keyDown = function (noteNum) {
-        if (noteNum in this.keys) {
-            var key = this.keys[noteNum];
-            var note = new Note(key.querySelector('.fill'));
-            if (!this.notes[noteNum]) {
-                this.notes[noteNum] = [];
-            }
-            this.notes[noteNum].push(note);
-        }
-    };
-    KeyboardElement.prototype.keyUp = function (noteNum) {
-        if (noteNum in this.keys) {
-            if (!(this.notes[noteNum] && this.notes[noteNum].length)) {
-                console.warn('note off before note on');
-            }
-            else {
-                this.notes[noteNum].shift().noteOff();
-            }
-        }
-    };
-    return KeyboardElement;
-}());
-exports.KeyboardElement = KeyboardElement;
-var Note = (function () {
-    function Note(element) {
-        this.element = element;
-        this.element.classList.add('active');
-    }
-    Note.prototype.noteOff = function () {
-        this.element.classList.remove('active');
-    };
-    return Note;
-}());
-
-},{}],109:[function(require,module,exports){
-"use strict";
+};
+var _this = this;
 Object.defineProperty(exports, "__esModule", { value: true });
+var performance_rnn_1 = require("./performance_rnn");
 var muski_performance_rnn_ui_1 = require("./muski-performance-rnn-ui");
 $('[data-component="muski-performance-rnn-ui"]').each(function (i, el) {
-    var $el = $(el);
-    var ui = new muski_performance_rnn_ui_1.default();
-    $el.replaceWith(ui.$element);
+    (function () { return __awaiter(_this, void 0, void 0, function () {
+        var $el, originalChildren, ui;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    $el = $(el);
+                    originalChildren = $el.children();
+                    ui = new muski_performance_rnn_ui_1.default();
+                    ui.$element.hide();
+                    $el.append(ui.$element);
+                    return [4, performance_rnn_1.default()];
+                case 1:
+                    _a.sent();
+                    originalChildren.remove();
+                    ui.$element.show();
+                    return [2];
+            }
+        });
+    }); })();
 });
 
-},{"./muski-performance-rnn-ui":110}],110:[function(require,module,exports){
+},{"./muski-performance-rnn-ui":109,"./performance_rnn":110}],109:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 var MuskiPerformanceRnnUi = (function () {
@@ -37689,6 +37674,11 @@ var MuskiPerformanceRnnUi = (function () {
         if (options === void 0) { options = {}; }
         this.$element = $('<div></div>')
             .addClass('muski-performance-rnn-ui');
+        this.$pad = $('<div></div>')
+            .addClass('muski-performance-rnn-pad')
+            .attr('id', 'input-pad')
+            .append($('<div></div>')
+            .addClass('pointer'));
         this.$noteDensityInput = $('<input />')
             .attr('type', 'range')
             .addClass(['form-range'])
@@ -37707,6 +37697,21 @@ var MuskiPerformanceRnnUi = (function () {
             max: 200,
             value: 100,
         });
+        this.$startPauseButton = $('<button></button>')
+            .attr({
+            type: 'button',
+            id: 'start-pause-button',
+            disabled: true,
+        })
+            .addClass(['btn', 'btn-primary', 'btn-lg', 'disabled', 'me-2'])
+            .text('Play');
+        this.$resetButton = $('<button></button>')
+            .attr({
+            type: 'button',
+            id: 'reset-rnn',
+        })
+            .addClass(['btn', 'btn-warning'])
+            .text('Reset RNN');
         this.$status = $('<div></div>')
             .attr('id', 'resettingText')
             .addClass(['text-center', 'mb-3'])
@@ -37715,7 +37720,13 @@ var MuskiPerformanceRnnUi = (function () {
             .addClass(['badge', 'text-bg-warning'])
             .text('Resetting...'));
         $('<div></div>')
-            .addClass(['row', 'justify-content-center'])
+            .addClass(['row'])
+            .append($('<div></div>')
+            .addClass('col')
+            .append(this.$pad))
+            .appendTo(this.$element);
+        $('<div></div>')
+            .addClass(['row', 'justify-content-center', 'ui-panel'])
             .append($('<div></div>')
             .addClass(['col-lg-6', 'col-md-8'])
             .append($('<div></div>')
@@ -37735,21 +37746,8 @@ var MuskiPerformanceRnnUi = (function () {
             .append(this.$gainInput))
             .append($('<div></div>')
             .addClass(['col'])
-            .append($('<button></button>')
-            .attr({
-            type: 'button',
-            id: 'start-pause-button',
-            disabled: true,
-        })
-            .addClass(['btn', 'btn-primary', 'btn-lg', 'disabled', 'me-2'])
-            .text('Play'))
-            .append($('<button></button>')
-            .attr({
-            type: 'button',
-            id: 'reset-rnn',
-        })
-            .addClass(['btn', 'btn-warning'])
-            .text('Reset RNN'))))
+            .append(this.$startPauseButton)
+            .append(this.$resetButton)))
             .append($('<div></div>')
             .addClass(['col'])
             .append(this.$status)))
@@ -37759,7 +37757,7 @@ var MuskiPerformanceRnnUi = (function () {
 }());
 exports.default = MuskiPerformanceRnnUi;
 
-},{}],111:[function(require,module,exports){
+},{}],110:[function(require,module,exports){
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -37798,335 +37796,382 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var tf = require("@tensorflow/tfjs-core");
-var keyboard_element_1 = require("./keyboard_element");
-require("./main");
-var DEFAULT_PITCH_WEIGHTS = [2, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1];
-var Piano = require('tone-piano').Piano;
-var lstmKernel1;
-var lstmBias1;
-var lstmKernel2;
-var lstmBias2;
-var lstmKernel3;
-var lstmBias3;
-var c;
-var h;
-var fcB;
-var fcW;
-var forgetBias = tf.scalar(1.0);
-var activeNotes = new Map();
-var stepTimeout = null;
-var resetTimeout = null;
-var STEPS_PER_GENERATE_CALL = 10;
-var GENERATION_BUFFER_SECONDS = .5;
-var MAX_GENERATION_LAG_SECONDS = 1;
-var MAX_NOTE_DURATION_SECONDS = 3;
-var NOTES_PER_OCTAVE = 12;
-var DENSITY_BIN_RANGES = [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0];
-var PITCH_WEIGHT_SIZE = NOTES_PER_OCTAVE;
-var RESET_RNN_FREQUENCY_MS = 30000;
-var pitchDistribution;
-var noteDensityEncoding;
-var currentPianoTimeSec = 0;
-var currentVelocity = 100;
-var MIN_MIDI_PITCH = 0;
-var MAX_MIDI_PITCH = 127;
-var VELOCITY_BINS = 32;
-var MAX_SHIFT_STEPS = 100;
-var STEPS_PER_SECOND = 100;
-var currentLoopId = 0;
-var EVENT_RANGES = [
-    ['note_on', MIN_MIDI_PITCH, MAX_MIDI_PITCH],
-    ['note_off', MIN_MIDI_PITCH, MAX_MIDI_PITCH],
-    ['time_shift', 1, MAX_SHIFT_STEPS],
-    ['velocity_change', 1, VELOCITY_BINS],
-];
-function calculateEventSize() {
-    var eventOffset = 0;
-    for (var _i = 0, EVENT_RANGES_1 = EVENT_RANGES; _i < EVENT_RANGES_1.length; _i++) {
-        var eventRange = EVENT_RANGES_1[_i];
-        var minValue = eventRange[1];
-        var maxValue = eventRange[2];
-        eventOffset += maxValue - minValue + 1;
-    }
-    return eventOffset;
-}
-var EVENT_SIZE = calculateEventSize();
-var PRIMER_IDX = 355;
-var lastSample = tf.scalar(PRIMER_IDX, 'int32');
-var container = document.querySelector('#keyboard');
-var keyboardInterface = new keyboard_element_1.KeyboardElement(container);
-var piano = new Piano({ velocities: 4 }).toMaster();
-var SALAMANDER_URL = '/soundfonts/salamander-piano/';
-var CHECKPOINT_URL = '/checkpoints/performance-rnn-tfjs';
-var isDeviceSupported = tf.ENV.get('WEBGL_VERSION') >= 1;
-if (!isDeviceSupported) {
-    document.querySelector('#status').innerHTML =
-        'We do not yet support your device. Please try on a desktop ' +
-            'computer with Chrome/Firefox, or an Android phone with WebGL support.';
-}
-else {
-    start();
-}
-var modelReady = false;
-var modelRunning = false;
-var startButton = document.querySelector('#start-pause-button');
-function start() {
-    piano.load(SALAMANDER_URL)
-        .then(function () {
-        return fetch(CHECKPOINT_URL + "/weights_manifest.json")
-            .then(function (response) { return response.json(); })
-            .then(function (manifest) {
-            return tf.loadWeights(manifest, CHECKPOINT_URL);
-        });
-    })
-        .then(function (vars) {
-        lstmKernel1 =
-            vars['rnn/multi_rnn_cell/cell_0/basic_lstm_cell/kernel'];
-        lstmBias1 = vars['rnn/multi_rnn_cell/cell_0/basic_lstm_cell/bias'];
-        lstmKernel2 =
-            vars['rnn/multi_rnn_cell/cell_1/basic_lstm_cell/kernel'];
-        lstmBias2 = vars['rnn/multi_rnn_cell/cell_1/basic_lstm_cell/bias'];
-        lstmKernel3 =
-            vars['rnn/multi_rnn_cell/cell_2/basic_lstm_cell/kernel'];
-        lstmBias3 = vars['rnn/multi_rnn_cell/cell_2/basic_lstm_cell/bias'];
-        fcB = vars['fully_connected/biases'];
-        fcW = vars['fully_connected/weights'];
-        modelReady = true;
-        enableResumeButton();
-    });
-}
-function resetRnn() {
-    c = [
-        tf.zeros([1, lstmBias1.shape[0] / 4]),
-        tf.zeros([1, lstmBias2.shape[0] / 4]),
-        tf.zeros([1, lstmBias3.shape[0] / 4]),
-    ];
-    h = [
-        tf.zeros([1, lstmBias1.shape[0] / 4]),
-        tf.zeros([1, lstmBias2.shape[0] / 4]),
-        tf.zeros([1, lstmBias3.shape[0] / 4]),
-    ];
-    if (lastSample != null) {
-        lastSample.dispose();
-    }
-    lastSample = tf.scalar(PRIMER_IDX, 'int32');
-    currentPianoTimeSec = piano.now();
-    currentLoopId++;
-    generateStep(currentLoopId);
-}
-window.addEventListener('resize', resize);
-function resize() {
-    keyboardInterface.resize();
-}
-resize();
-var densityControl = document.getElementById('note-density');
-var densityDisplay = document.getElementById('note-density-display');
-var gainSliderElement = document.getElementById('gain');
-var gainDisplayElement = document.getElementById('gain-display');
-var globalGain = +gainSliderElement.value;
-gainDisplayElement.innerText = globalGain.toString();
-gainSliderElement.addEventListener('input', function () {
-    globalGain = +gainSliderElement.value;
-    gainDisplayElement.innerText = globalGain.toString();
-});
-function updateConditioningParams() {
-    if (noteDensityEncoding != null) {
-        noteDensityEncoding.dispose();
-        noteDensityEncoding = null;
-    }
-    var noteDensityIdx = parseInt(densityControl.value, 10) || 0;
-    var noteDensity = DENSITY_BIN_RANGES[noteDensityIdx];
-    densityDisplay.innerHTML = noteDensity.toString();
-    noteDensityEncoding =
-        tf.oneHot(tf.tensor1d([noteDensityIdx + 1], 'int32'), DENSITY_BIN_RANGES.length + 1).as1D();
-}
-function setPitchWeights(values) {
-    if (PITCH_WEIGHT_SIZE != values.length) {
-        throw new Error("Wrong number of pitch weights (should be " + PITCH_WEIGHT_SIZE + ")");
-    }
-    if (pitchDistribution != null) {
-        pitchDistribution.dispose();
-        pitchDistribution = null;
-    }
-    var buffer = tf.buffer([PITCH_WEIGHT_SIZE], 'float32');
-    var totalWeight = values.reduce(function (prev, val) {
-        return prev + val;
-    });
-    for (var i = 0; i < PITCH_WEIGHT_SIZE; i++) {
-        buffer.set(values[i] / totalWeight, i);
-    }
-    pitchDistribution = buffer.toTensor();
-}
-setPitchWeights(DEFAULT_PITCH_WEIGHTS);
-document.getElementById('note-density').oninput = updateConditioningParams;
-updateConditioningParams();
-document.getElementById('reset-rnn').onclick = function () {
-    resetRnn();
-};
-function getConditioning() {
-    return tf.tidy(function () {
-        var axis = 0;
-        var conditioningValues = noteDensityEncoding.concat(pitchDistribution, axis);
-        return tf.tensor1d([0], 'int32').concat(conditioningValues, axis);
-    });
-}
-function generateStep(loopId) {
+function init() {
     return __awaiter(this, void 0, void 0, function () {
-        var lstm1, lstm2, lstm3, outputs, i, delta, _a;
-        return __generator(this, function (_b) {
-            if (loopId < currentLoopId) {
-                return [2];
+        function calculateEventSize() {
+            var eventOffset = 0;
+            for (var _i = 0, EVENT_RANGES_1 = EVENT_RANGES; _i < EVENT_RANGES_1.length; _i++) {
+                var eventRange = EVENT_RANGES_1[_i];
+                var minValue = eventRange[1];
+                var maxValue = eventRange[2];
+                eventOffset += maxValue - minValue + 1;
             }
-            lstm1 = function (data, c, h) {
-                return tf.basicLSTMCell(forgetBias, lstmKernel1, lstmBias1, data, c, h);
-            };
-            lstm2 = function (data, c, h) {
-                return tf.basicLSTMCell(forgetBias, lstmKernel2, lstmBias2, data, c, h);
-            };
-            lstm3 = function (data, c, h) {
-                return tf.basicLSTMCell(forgetBias, lstmKernel3, lstmBias3, data, c, h);
-            };
-            outputs = [];
-            _a = tf.tidy(function () {
-                var innerOuts = [];
-                for (var i = 0; i < STEPS_PER_GENERATE_CALL; i++) {
-                    var eventInput = tf.oneHot(lastSample.as1D(), EVENT_SIZE).as1D();
-                    if (i === 0) {
-                        lastSample.dispose();
-                    }
-                    var conditioning = getConditioning();
-                    var axis = 0;
-                    var input = conditioning.concat(eventInput, axis).toFloat();
-                    var output = tf.multiRNNCell([lstm1, lstm2, lstm3], input.as2D(1, -1), c, h);
-                    c.forEach(function (c) { return c.dispose(); });
-                    h.forEach(function (h) { return h.dispose(); });
-                    c = output[0];
-                    h = output[1];
-                    var outputH = h[2];
-                    var logits = outputH.matMul(fcW).add(fcB);
-                    var sampledOutput = tf.multinomial(logits.as1D(), 1).asScalar();
-                    innerOuts.push(sampledOutput);
-                    lastSample = sampledOutput;
-                }
-                return [c, h, innerOuts];
-            }), c = _a[0], h = _a[1], outputs = _a[2];
-            for (i = 0; i < outputs.length; i++) {
-                playOutput(outputs[i].dataSync()[0]);
-            }
-            if (piano.now() - currentPianoTimeSec > MAX_GENERATION_LAG_SECONDS) {
-                console.warn("Generation is " + (piano.now() - currentPianoTimeSec) + " seconds behind, " +
-                    ("which is over " + MAX_NOTE_DURATION_SECONDS + ". Resetting time!"));
-                currentPianoTimeSec = piano.now();
-            }
-            delta = Math.max(0, currentPianoTimeSec - piano.now() - GENERATION_BUFFER_SECONDS);
-            stepTimeout = setTimeout(function () { return generateStep(loopId); }, delta * 1000);
-            return [2];
-        });
-    });
-}
-function playOutput(index) {
-    var offset = 0;
-    var _loop_1 = function (eventRange) {
-        var eventType = eventRange[0];
-        var minValue = eventRange[1];
-        var maxValue = eventRange[2];
-        if (offset <= index && index <= offset + maxValue - minValue) {
-            if (eventType === 'note_on') {
-                var noteNum_1 = index - offset;
-                setTimeout(function () {
-                    keyboardInterface.keyDown(noteNum_1);
-                    setTimeout(function () {
-                        keyboardInterface.keyUp(noteNum_1);
-                    }, 100);
-                }, (currentPianoTimeSec - piano.now()) * 1000);
-                activeNotes.set(noteNum_1, currentPianoTimeSec);
-                return { value: piano.keyDown(noteNum_1, currentPianoTimeSec, currentVelocity * globalGain / 100) };
-            }
-            else if (eventType === 'note_off') {
-                var noteNum = index - offset;
-                var activeNoteEndTimeSec = activeNotes.get(noteNum);
-                if (activeNoteEndTimeSec == null) {
-                    return { value: void 0 };
-                }
-                var timeSec = Math.max(currentPianoTimeSec, activeNoteEndTimeSec + .5);
-                piano.keyUp(noteNum, timeSec);
-                activeNotes.delete(noteNum);
-                return { value: void 0 };
-            }
-            else if (eventType === 'time_shift') {
-                currentPianoTimeSec += (index - offset + 1) / STEPS_PER_SECOND;
-                activeNotes.forEach(function (timeSec, noteNum) {
-                    if (currentPianoTimeSec - timeSec > MAX_NOTE_DURATION_SECONDS) {
-                        console.info("Note " + noteNum + " has been active for " + (currentPianoTimeSec - timeSec) + ", " +
-                            ("seconds which is over " + MAX_NOTE_DURATION_SECONDS + ", will ") +
-                            "release.");
-                        piano.keyUp(noteNum, currentPianoTimeSec);
-                        activeNotes.delete(noteNum);
+            return eventOffset;
+        }
+        function start() {
+            return __awaiter(this, void 0, void 0, function () {
+                return __generator(this, function (_a) {
+                    switch (_a.label) {
+                        case 0:
+                            console.log('startButton', startButton);
+                            return [4, piano.load(SALAMANDER_URL)
+                                    .then(function () {
+                                    return fetch(CHECKPOINT_URL + "/weights_manifest.json")
+                                        .then(function (response) { return response.json(); })
+                                        .then(function (manifest) {
+                                        return tf.loadWeights(manifest, CHECKPOINT_URL);
+                                    });
+                                })
+                                    .then(function (vars) {
+                                    lstmKernel1 =
+                                        vars['rnn/multi_rnn_cell/cell_0/basic_lstm_cell/kernel'];
+                                    lstmBias1 = vars['rnn/multi_rnn_cell/cell_0/basic_lstm_cell/bias'];
+                                    lstmKernel2 =
+                                        vars['rnn/multi_rnn_cell/cell_1/basic_lstm_cell/kernel'];
+                                    lstmBias2 = vars['rnn/multi_rnn_cell/cell_1/basic_lstm_cell/bias'];
+                                    lstmKernel3 =
+                                        vars['rnn/multi_rnn_cell/cell_2/basic_lstm_cell/kernel'];
+                                    lstmBias3 = vars['rnn/multi_rnn_cell/cell_2/basic_lstm_cell/bias'];
+                                    fcB = vars['fully_connected/biases'];
+                                    fcW = vars['fully_connected/weights'];
+                                    modelReady = true;
+                                    enableResumeButton();
+                                })];
+                        case 1:
+                            _a.sent();
+                            return [2];
                     }
                 });
-                return { value: currentPianoTimeSec };
+            });
+        }
+        function resetRnn() {
+            c = [
+                tf.zeros([1, lstmBias1.shape[0] / 4]),
+                tf.zeros([1, lstmBias2.shape[0] / 4]),
+                tf.zeros([1, lstmBias3.shape[0] / 4]),
+            ];
+            h = [
+                tf.zeros([1, lstmBias1.shape[0] / 4]),
+                tf.zeros([1, lstmBias2.shape[0] / 4]),
+                tf.zeros([1, lstmBias3.shape[0] / 4]),
+            ];
+            if (lastSample != null) {
+                lastSample.dispose();
             }
-            else if (eventType === 'velocity_change') {
-                currentVelocity = (index - offset + 1) * Math.ceil(127 / VELOCITY_BINS);
-                currentVelocity = currentVelocity / 127;
-                return { value: currentVelocity };
+            lastSample = tf.scalar(PRIMER_IDX, 'int32');
+            currentPianoTimeSec = piano.now();
+            currentLoopId++;
+            generateStep(currentLoopId);
+        }
+        function updateConditioningParams() {
+            if (noteDensityEncoding != null) {
+                noteDensityEncoding.dispose();
+                noteDensityEncoding = null;
             }
-            else {
-                throw new Error('Could not decode eventType: ' + eventType);
+            var noteDensityIdx = parseInt(densityControl.value, 10) || 0;
+            var noteDensity = DENSITY_BIN_RANGES[noteDensityIdx];
+            densityDisplay.innerHTML = noteDensity.toString();
+            noteDensityEncoding =
+                tf.oneHot(tf.tensor1d([noteDensityIdx + 1], 'int32'), DENSITY_BIN_RANGES.length + 1).as1D();
+        }
+        function setPitchWeights(values) {
+            if (PITCH_WEIGHT_SIZE != values.length) {
+                throw new Error("Wrong number of pitch weights (should be " + PITCH_WEIGHT_SIZE + ")");
+            }
+            if (pitchDistribution != null) {
+                pitchDistribution.dispose();
+                pitchDistribution = null;
+            }
+            var buffer = tf.buffer([PITCH_WEIGHT_SIZE], 'float32');
+            var totalWeight = values.reduce(function (prev, val) {
+                return prev + val;
+            });
+            for (var i = 0; i < PITCH_WEIGHT_SIZE; i++) {
+                buffer.set(values[i] / totalWeight, i);
+            }
+            pitchDistribution = buffer.toTensor();
+        }
+        function getConditioning() {
+            return tf.tidy(function () {
+                var axis = 0;
+                var conditioningValues = noteDensityEncoding.concat(pitchDistribution, axis);
+                return tf.tensor1d([0], 'int32').concat(conditioningValues, axis);
+            });
+        }
+        function generateStep(loopId) {
+            return __awaiter(this, void 0, void 0, function () {
+                var lstm1, lstm2, lstm3, outputs, i, delta, _a;
+                return __generator(this, function (_b) {
+                    if (loopId < currentLoopId) {
+                        return [2];
+                    }
+                    lstm1 = function (data, c, h) {
+                        return tf.basicLSTMCell(forgetBias, lstmKernel1, lstmBias1, data, c, h);
+                    };
+                    lstm2 = function (data, c, h) {
+                        return tf.basicLSTMCell(forgetBias, lstmKernel2, lstmBias2, data, c, h);
+                    };
+                    lstm3 = function (data, c, h) {
+                        return tf.basicLSTMCell(forgetBias, lstmKernel3, lstmBias3, data, c, h);
+                    };
+                    outputs = [];
+                    _a = tf.tidy(function () {
+                        var innerOuts = [];
+                        for (var i = 0; i < STEPS_PER_GENERATE_CALL; i++) {
+                            var eventInput = tf.oneHot(lastSample.as1D(), EVENT_SIZE).as1D();
+                            if (i === 0) {
+                                lastSample.dispose();
+                            }
+                            var conditioning = getConditioning();
+                            var axis = 0;
+                            var input = conditioning.concat(eventInput, axis).toFloat();
+                            var output = tf.multiRNNCell([lstm1, lstm2, lstm3], input.as2D(1, -1), c, h);
+                            c.forEach(function (c) { return c.dispose(); });
+                            h.forEach(function (h) { return h.dispose(); });
+                            c = output[0];
+                            h = output[1];
+                            var outputH = h[2];
+                            var logits = outputH.matMul(fcW).add(fcB);
+                            var sampledOutput = tf.multinomial(logits.as1D(), 1).asScalar();
+                            innerOuts.push(sampledOutput);
+                            lastSample = sampledOutput;
+                        }
+                        return [c, h, innerOuts];
+                    }), c = _a[0], h = _a[1], outputs = _a[2];
+                    for (i = 0; i < outputs.length; i++) {
+                        playOutput(outputs[i].dataSync()[0]);
+                    }
+                    if (piano.now() - currentPianoTimeSec > MAX_GENERATION_LAG_SECONDS) {
+                        console.warn("Generation is " + (piano.now() - currentPianoTimeSec) + " seconds behind, " +
+                            ("which is over " + MAX_NOTE_DURATION_SECONDS + ". Resetting time!"));
+                        currentPianoTimeSec = piano.now();
+                    }
+                    delta = Math.max(0, currentPianoTimeSec - piano.now() - GENERATION_BUFFER_SECONDS);
+                    stepTimeout = setTimeout(function () { return generateStep(loopId); }, delta * 1000);
+                    return [2];
+                });
+            });
+        }
+        function playOutput(index) {
+            var offset = 0;
+            for (var _i = 0, EVENT_RANGES_2 = EVENT_RANGES; _i < EVENT_RANGES_2.length; _i++) {
+                var eventRange = EVENT_RANGES_2[_i];
+                var eventType = eventRange[0];
+                var minValue = eventRange[1];
+                var maxValue = eventRange[2];
+                if (offset <= index && index <= offset + maxValue - minValue) {
+                    if (eventType === 'note_on') {
+                        var noteNum = index - offset;
+                        activeNotes.set(noteNum, currentPianoTimeSec);
+                        return piano.keyDown(noteNum, currentPianoTimeSec, currentVelocity * globalGain / 100);
+                    }
+                    else if (eventType === 'note_off') {
+                        var noteNum = index - offset;
+                        var activeNoteEndTimeSec = activeNotes.get(noteNum);
+                        if (activeNoteEndTimeSec == null) {
+                            return;
+                        }
+                        var timeSec = Math.max(currentPianoTimeSec, activeNoteEndTimeSec + .5);
+                        piano.keyUp(noteNum, timeSec);
+                        activeNotes.delete(noteNum);
+                        return;
+                    }
+                    else if (eventType === 'time_shift') {
+                        currentPianoTimeSec += (index - offset + 1) / STEPS_PER_SECOND;
+                        activeNotes.forEach(function (timeSec, noteNum) {
+                            if (currentPianoTimeSec - timeSec > MAX_NOTE_DURATION_SECONDS) {
+                                piano.keyUp(noteNum, currentPianoTimeSec);
+                                activeNotes.delete(noteNum);
+                            }
+                        });
+                        return currentPianoTimeSec;
+                    }
+                    else if (eventType === 'velocity_change') {
+                        currentVelocity = (index - offset + 1) * Math.ceil(127 / VELOCITY_BINS);
+                        currentVelocity = currentVelocity / 127;
+                        return currentVelocity;
+                    }
+                    else {
+                        throw new Error('Could not decode eventType: ' + eventType);
+                    }
+                }
+                offset += maxValue - minValue + 1;
+            }
+            throw new Error("Could not decode index: " + index);
+        }
+        function resetRnnRepeatedly() {
+            var resettingText = document.getElementById('resettingText');
+            if (modelReady) {
+                resetRnn();
+                resettingText.style.opacity = '100';
+            }
+            setTimeout(function () {
+                resettingText.style.opacity = '0';
+            }, 1000);
+            resetTimeout = setTimeout(resetRnnRepeatedly, RESET_RNN_FREQUENCY_MS);
+        }
+        function pauseModel() {
+            if (stepTimeout != null) {
+                clearTimeout(stepTimeout);
+                stepTimeout = null;
+            }
+            if (resetTimeout != null) {
+                clearTimeout(resetTimeout);
+                resetTimeout = null;
+            }
+            modelRunning = false;
+        }
+        function startModel() {
+            if (modelReady) {
+                modelRunning = true;
+                resetRnnRepeatedly();
             }
         }
-        offset += maxValue - minValue + 1;
-    };
-    for (var _i = 0, EVENT_RANGES_2 = EVENT_RANGES; _i < EVENT_RANGES_2.length; _i++) {
-        var eventRange = EVENT_RANGES_2[_i];
-        var state_1 = _loop_1(eventRange);
-        if (typeof state_1 === "object")
-            return state_1.value;
-    }
-    throw new Error("Could not decode index: " + index);
+        function enableResumeButton() {
+            startButton.removeAttribute('disabled');
+            startButton.classList.remove('disabled');
+        }
+        function adjustParameters(clientX, clientY) {
+            var rect = inputPad.getBoundingClientRect();
+            var x = (clientX - rect.left) / rect.width;
+            var y = (clientY - rect.top) / rect.height;
+            var densityValue = densityMin + x * (densityMax - densityMin);
+            densityControl.value = densityValue.toString();
+            var gainValue = gainSliderElementMin + (1 - y) * (gainSliderElementMax - gainSliderElementMin);
+            gainSliderElement.value = gainValue.toString();
+            globalGain = +gainSliderElement.value;
+            gainDisplayElement.innerText = globalGain.toString();
+            updateConditioningParams();
+        }
+        function handlePointerOn(pointerId) {
+            activePointerId = pointerId;
+            inputPadPointer.classList.add('visible');
+            startModel();
+        }
+        function handlePointerOff() {
+            inputPadPointer.classList.remove('visible');
+            activePointerId = null;
+            if (modelRunning) {
+                pauseModel();
+            }
+        }
+        function handlePointerMove(clientX, clientY) {
+            var rect = inputPad.getBoundingClientRect();
+            inputPadPointer.style.left = clientX - rect.left + "px";
+            inputPadPointer.style.top = clientY - rect.top + "px";
+        }
+        var DEFAULT_PITCH_WEIGHTS, Piano, lstmKernel1, lstmBias1, lstmKernel2, lstmBias2, lstmKernel3, lstmBias3, c, h, fcB, fcW, forgetBias, activeNotes, stepTimeout, resetTimeout, STEPS_PER_GENERATE_CALL, GENERATION_BUFFER_SECONDS, MAX_GENERATION_LAG_SECONDS, MAX_NOTE_DURATION_SECONDS, NOTES_PER_OCTAVE, DENSITY_BIN_RANGES, PITCH_WEIGHT_SIZE, RESET_RNN_FREQUENCY_MS, pitchDistribution, noteDensityEncoding, currentPianoTimeSec, currentVelocity, MIN_MIDI_PITCH, MAX_MIDI_PITCH, VELOCITY_BINS, MAX_SHIFT_STEPS, STEPS_PER_SECOND, currentLoopId, EVENT_RANGES, EVENT_SIZE, PRIMER_IDX, lastSample, container, piano, SALAMANDER_URL, CHECKPOINT_URL, isDeviceSupported, modelReady, modelRunning, startButton, inputPad, inputPadPointer, densityControl, densityDisplay, gainSliderElement, gainDisplayElement, globalGain, densityMin, densityMax, gainSliderElementMin, gainSliderElementMax, activePointerId;
+        return __generator(this, function (_a) {
+            switch (_a.label) {
+                case 0:
+                    DEFAULT_PITCH_WEIGHTS = [2, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1];
+                    Piano = require('tone-piano').Piano;
+                    forgetBias = tf.scalar(1.0);
+                    activeNotes = new Map();
+                    stepTimeout = null;
+                    resetTimeout = null;
+                    STEPS_PER_GENERATE_CALL = 10;
+                    GENERATION_BUFFER_SECONDS = .5;
+                    MAX_GENERATION_LAG_SECONDS = 1;
+                    MAX_NOTE_DURATION_SECONDS = 3;
+                    NOTES_PER_OCTAVE = 12;
+                    DENSITY_BIN_RANGES = [1.0, 2.0, 4.0, 8.0, 16.0, 32.0, 64.0];
+                    PITCH_WEIGHT_SIZE = NOTES_PER_OCTAVE;
+                    RESET_RNN_FREQUENCY_MS = 30000;
+                    currentPianoTimeSec = 0;
+                    currentVelocity = 100;
+                    MIN_MIDI_PITCH = 0;
+                    MAX_MIDI_PITCH = 127;
+                    VELOCITY_BINS = 32;
+                    MAX_SHIFT_STEPS = 100;
+                    STEPS_PER_SECOND = 100;
+                    currentLoopId = 0;
+                    EVENT_RANGES = [
+                        ['note_on', MIN_MIDI_PITCH, MAX_MIDI_PITCH],
+                        ['note_off', MIN_MIDI_PITCH, MAX_MIDI_PITCH],
+                        ['time_shift', 1, MAX_SHIFT_STEPS],
+                        ['velocity_change', 1, VELOCITY_BINS],
+                    ];
+                    EVENT_SIZE = calculateEventSize();
+                    PRIMER_IDX = 355;
+                    lastSample = tf.scalar(PRIMER_IDX, 'int32');
+                    container = document.querySelector('#keyboard');
+                    piano = new Piano({ velocities: 4 }).toMaster();
+                    SALAMANDER_URL = '/soundfonts/salamander-piano/';
+                    CHECKPOINT_URL = '/checkpoints/performance-rnn-tfjs';
+                    isDeviceSupported = tf.ENV.get('WEBGL_VERSION') >= 1;
+                    modelReady = false;
+                    modelRunning = false;
+                    startButton = document.querySelector('#start-pause-button');
+                    inputPad = document.getElementById('input-pad');
+                    inputPadPointer = inputPad.querySelector('.pointer');
+                    densityControl = document.getElementById('note-density');
+                    densityDisplay = document.getElementById('note-density-display');
+                    gainSliderElement = document.getElementById('gain');
+                    gainDisplayElement = document.getElementById('gain-display');
+                    globalGain = +gainSliderElement.value;
+                    gainDisplayElement.innerText = globalGain.toString();
+                    gainSliderElement.addEventListener('input', function () {
+                        globalGain = +gainSliderElement.value;
+                        gainDisplayElement.innerText = globalGain.toString();
+                    });
+                    setPitchWeights(DEFAULT_PITCH_WEIGHTS);
+                    document.getElementById('note-density').oninput = updateConditioningParams;
+                    updateConditioningParams();
+                    document.getElementById('reset-rnn').onclick = function () {
+                        resetRnn();
+                    };
+                    startButton.addEventListener('click', function () {
+                        if (modelRunning) {
+                            pauseModel();
+                            startButton.innerHTML = 'Play';
+                        }
+                        else {
+                            startModel();
+                            startButton.innerHTML = 'Pause';
+                        }
+                    });
+                    densityMin = parseFloat(densityControl.min);
+                    densityMax = parseFloat(densityControl.max);
+                    gainSliderElementMin = parseFloat(gainSliderElement.min);
+                    gainSliderElementMax = parseFloat(gainSliderElement.max);
+                    activePointerId = null;
+                    inputPad.addEventListener('pointerdown', function (e) {
+                        handlePointerOn(e.pointerId);
+                        handlePointerMove(e.clientX, e.clientY);
+                        adjustParameters(e.clientX, e.clientY);
+                    });
+                    document.addEventListener('pointerup', function (e) {
+                        if (e.pointerId === activePointerId) {
+                            handlePointerOff();
+                        }
+                    });
+                    document.addEventListener('pointercancel', function (e) {
+                        if (e.pointerId === activePointerId) {
+                            handlePointerOff();
+                        }
+                    });
+                    inputPad.addEventListener('pointermove', function (e) {
+                        if (e.pointerId === activePointerId) {
+                            handlePointerMove(e.clientX, e.clientY);
+                            adjustParameters(e.clientX, e.clientY);
+                        }
+                    });
+                    if (!!isDeviceSupported) return [3, 1];
+                    document.querySelector('#status').innerHTML =
+                        'We do not yet support your device. Please try on a desktop ' +
+                            'computer with Chrome/Firefox, or an Android phone with WebGL support.';
+                    return [3, 3];
+                case 1: return [4, start()];
+                case 2:
+                    _a.sent();
+                    _a.label = 3;
+                case 3: return [2];
+            }
+        });
+    });
 }
-function resetRnnRepeatedly() {
-    var resettingText = document.getElementById('resettingText');
-    if (modelReady) {
-        resetRnn();
-        resettingText.style.opacity = '100';
-    }
-    setTimeout(function () {
-        resettingText.style.opacity = '0';
-    }, 1000);
-    resetTimeout = setTimeout(resetRnnRepeatedly, RESET_RNN_FREQUENCY_MS);
-}
-function pauseModel() {
-    if (stepTimeout != null) {
-        clearTimeout(stepTimeout);
-        stepTimeout = null;
-    }
-    if (resetTimeout != null) {
-        clearTimeout(resetTimeout);
-        resetTimeout = null;
-    }
-    modelRunning = false;
-}
-function startModel() {
-    if (modelReady) {
-        modelRunning = true;
-        resetRnnRepeatedly();
-    }
-}
-function enableResumeButton() {
-    startButton.removeAttribute('disabled');
-    startButton.classList.remove('disabled');
-}
-startButton.addEventListener('click', function () {
-    if (modelRunning) {
-        pauseModel();
-        startButton.innerHTML = 'Play';
-    }
-    else {
-        startModel();
-        startButton.innerHTML = 'Pause';
-    }
-});
+exports.default = init;
 
-},{"./keyboard_element":108,"./main":109,"@tensorflow/tfjs-core":8,"tone-piano":106}]},{},[111])(111)
+},{"@tensorflow/tfjs-core":8,"tone-piano":106}]},{},[108])(108)
 });
