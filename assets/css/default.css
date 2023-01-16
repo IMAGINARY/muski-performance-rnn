@@ -81,3 +81,31 @@ body #roll {
   text-align: center;
   margin-top: 15px;
 }
+
+.muski-performance-rnn-pad {
+  position: relative;
+  width: auto;
+  max-width: 600px;
+  height: 400px;
+  margin: auto;
+  border: 8px solid black;
+  overflow: hidden;
+  user-select: none;
+}
+
+.muski-performance-rnn-pad .pointer {
+  opacity: 0;
+  position: absolute;
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: #ffacd9;
+  transform: translate(calc(-50% - 8px), calc(-50% - 8px)) scale(0.5);
+  transition: opacity 1s ease-out, transform 1s ease-out;
+}
+
+.muski-performance-rnn-pad .pointer.visible {
+  opacity: 1;
+  transform: translate(calc(-50% - 8px), calc(-50% - 8px)) scale(1);
+  transition: opacity 2s ease-in, transform 3s ease-in;
+}

@@ -115,6 +115,8 @@ let modelReady = false;
 let modelRunning = false;
 
 let startButton = document.querySelector('#start-pause-button') as HTMLButtonElement;
+let inputPad = document.getElementById('input-pad') as HTMLInputElement;
+let inputPadPointer = inputPad.querySelector('.pointer') as HTMLInputElement;
 
 function start() {
     piano.load(SALAMANDER_URL)
@@ -427,3 +429,73 @@ startButton.addEventListener('click', () => {
         startButton.innerHTML = 'Pause';
     }
 });
+
+const densityMin = parseFloat(densityControl.min);
+const densityMax = parseFloat(densityControl.max);
+const gainSliderElementMin = parseFloat(gainSliderElement.min);
+const gainSliderElementMax = parseFloat(gainSliderElement.max);
+
+function adjustParameters(clientX : number, clientY : number) {
+    const rect = inputPad.getBoundingClientRect();
+    const x = (clientX - rect.left) / rect.width;
+    const y = (clientY - rect.top) / rect.height;
+
+    const densityValue = densityMin + x * (densityMax - densityMin);
+    densityControl.value = densityValue.toString();
+
+    const gainValue = gainSliderElementMin + (1 - y) * (gainSliderElementMax - gainSliderElementMin);
+    gainSliderElement.value = gainValue.toString();
+    
+    globalGain = +gainSliderElement.value;
+    gainDisplayElement.innerText = globalGain.toString();
+    updateConditioningParams();
+}
+
+let activePointerId : number = null;
+
+function handlePointerOn(pointerId : number) {
+    activePointerId = pointerId;
+    inputPadPointer.classList.add('visible');
+    startModel();
+}
+
+function handlePointerOff() {
+    inputPadPointer.classList.remove('visible');
+    activePointerId = null;
+    if (modelRunning) {
+        pauseModel();
+    }
+}
+
+function handlePointerMove(clientX : number, clientY : number) {
+    // Now get the inputPad bounding rect that does not include the border
+    const rect = inputPad.getBoundingClientRect();
+    inputPadPointer.style.left = `${clientX - rect.left}px`;
+    inputPadPointer.style.top = `${clientY - rect.top}px`;
+}
+
+inputPad.addEventListener('pointerdown', (e) => {
+    handlePointerOn(e.pointerId);
+    handlePointerMove(e.clientX, e.clientY);
+    adjustParameters(e.clientX, e.clientY);
+});
+
+document.addEventListener('pointerup', (e) => {
+    if (e.pointerId === activePointerId) {
+        handlePointerOff();
+    }
+});
+
+document.addEventListener('pointercancel', (e) => {
+    if (e.pointerId === activePointerId) {
+        handlePointerOff();
+    }
+});
+
+inputPad.addEventListener('pointermove', (e) => {
+    if (e.pointerId === activePointerId) {
+        handlePointerMove(e.clientX, e.clientY);
+        adjustParameters(e.clientX, e.clientY);
+    }
+});
+
