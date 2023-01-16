@@ -341,11 +341,11 @@ function playOutput(index: number) {
                 currentPianoTimeSec += (index - offset + 1) / STEPS_PER_SECOND;
                 activeNotes.forEach((timeSec, noteNum) => {
                     if (currentPianoTimeSec - timeSec > MAX_NOTE_DURATION_SECONDS) {
-                        console.info(
-                            `Note ${noteNum} has been active for ${
-                                currentPianoTimeSec - timeSec}, ` +
-                            `seconds which is over ${MAX_NOTE_DURATION_SECONDS}, will ` +
-                            `release.`);
+                        // console.info(
+                        //     `Note ${noteNum} has been active for ${
+                        //         currentPianoTimeSec - timeSec}, ` +
+                        //     `seconds which is over ${MAX_NOTE_DURATION_SECONDS}, will ` +
+                        //     `release.`);
 
                         piano.keyUp(noteNum, currentPianoTimeSec);
                         activeNotes.delete(noteNum);
@@ -429,7 +429,7 @@ function adjustParameters(clientX : number, clientY : number) {
 
     const gainValue = gainSliderElementMin + (1 - y) * (gainSliderElementMax - gainSliderElementMin);
     gainSliderElement.value = gainValue.toString();
-    
+
     globalGain = +gainSliderElement.value;
     gainDisplayElement.innerText = globalGain.toString();
     updateConditioningParams();
