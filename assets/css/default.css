@@ -109,3 +109,7 @@ body #roll {
   transform: translate(calc(-50% - 8px), calc(-50% - 8px)) scale(1);
   transition: opacity 2s ease-in, transform 3s ease-in;
 }
+
+.ui-panel {
+  display: none;
+}

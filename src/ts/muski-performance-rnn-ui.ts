@@ -76,7 +76,7 @@ export default class MuskiPerformanceRnnUi {
       .appendTo(this.$element);
 
     $('<div></div>')
-      .addClass(['row', 'justify-content-center'])
+      .addClass(['row', 'justify-content-center', 'ui-panel'])
       .append($('<div></div>')
         .addClass(['col-lg-6', 'col-md-8'])
         .append($('<div></div>')
