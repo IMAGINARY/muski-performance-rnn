@@ -13,7 +13,6 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 import * as tf from '@tensorflow/tfjs-core';
-import {KeyboardElement} from './keyboard_element';
 import './main';
 
 // C Major scale.
@@ -94,7 +93,6 @@ const PRIMER_IDX = 355;  // shift 1s.
 let lastSample = tf.scalar(PRIMER_IDX, 'int32');
 
 const container = document.querySelector('#keyboard');
-const keyboardInterface = new KeyboardElement(container);
 
 const piano = new Piano({velocities: 4}).toMaster();
 
@@ -172,14 +170,6 @@ function resetRnn() {
     currentLoopId++;
     generateStep(currentLoopId);
 }
-
-window.addEventListener('resize', resize);
-
-function resize() {
-    keyboardInterface.resize();
-}
-
-resize();
 
 const densityControl =
     document.getElementById('note-density') as HTMLInputElement;
@@ -328,12 +318,6 @@ function playOutput(index: number) {
         if (offset <= index && index <= offset + maxValue - minValue) {
             if (eventType === 'note_on') {
                 const noteNum = index - offset;
-                setTimeout(() => {
-                    keyboardInterface.keyDown(noteNum);
-                    setTimeout(() => {
-                        keyboardInterface.keyUp(noteNum);
-                    }, 100);
-                }, (currentPianoTimeSec - piano.now()) * 1000);
                 activeNotes.set(noteNum, currentPianoTimeSec);
 
                 return piano.keyDown(
