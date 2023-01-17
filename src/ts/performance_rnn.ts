@@ -14,7 +14,7 @@ limitations under the License.
 ==============================================================================*/
 import * as tf from '@tensorflow/tfjs-core';
 
-export default async function init() {
+export default async function init(options : any = {}) {
 
 // C Major scale.
     const DEFAULT_PITCH_WEIGHTS = [2, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1];
@@ -111,9 +111,9 @@ export default async function init() {
 
     async function start() {
         console.log('startButton', startButton);
-        await piano.load(SALAMANDER_URL)
+        await piano.load(options.soundfontUrl || SALAMANDER_URL)
           .then(() => {
-              return fetch(`${CHECKPOINT_URL}/weights_manifest.json`)
+              return fetch(`${options.checkpointUrl || CHECKPOINT_URL}/weights_manifest.json`)
                 .then((response) => response.json())
                 .then(
                   (manifest: tf.WeightsManifestConfig) =>

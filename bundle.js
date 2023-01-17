@@ -37664,11 +37664,13 @@ var performance_rnn_1 = require("./performance_rnn");
 var muski_performance_rnn_ui_1 = require("./muski-performance-rnn-ui");
 $('[data-component="muski-performance-rnn-ui"]').each(function (i, el) {
     (function () { return __awaiter(_this, void 0, void 0, function () {
-        var lang, $el, originalChildren, ui;
+        var lang, soundfontUrl, checkpointUrl, $el, originalChildren, ui;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
                     lang = $(el).data('lang') || 'en';
+                    soundfontUrl = $(el).data('soundfont-url') || '/soundfonts/salamander-piano/';
+                    checkpointUrl = $(el).data('checkpoint-url') || '/checkpoints/performance-rnn-tfjs';
                     $el = $(el);
                     originalChildren = $el.children();
                     ui = new muski_performance_rnn_ui_1.default({
@@ -37676,7 +37678,10 @@ $('[data-component="muski-performance-rnn-ui"]').each(function (i, el) {
                     });
                     ui.$element.hide();
                     $el.append(ui.$element);
-                    return [4, performance_rnn_1.default()];
+                    return [4, performance_rnn_1.default({
+                            soundfontUrl: soundfontUrl,
+                            checkpointUrl: checkpointUrl,
+                        })];
                 case 1:
                     _a.sent();
                     originalChildren.remove();
@@ -37830,7 +37835,8 @@ var __generator = (this && this.__generator) || function (thisArg, body) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 var tf = require("@tensorflow/tfjs-core");
-function init() {
+function init(options) {
+    if (options === void 0) { options = {}; }
     return __awaiter(this, void 0, void 0, function () {
         function calculateEventSize() {
             var eventOffset = 0;
@@ -37848,9 +37854,9 @@ function init() {
                     switch (_a.label) {
                         case 0:
                             console.log('startButton', startButton);
-                            return [4, piano.load(SALAMANDER_URL)
+                            return [4, piano.load(options.soundfontUrl || SALAMANDER_URL)
                                     .then(function () {
-                                    return fetch(CHECKPOINT_URL + "/weights_manifest.json")
+                                    return fetch((options.checkpointUrl || CHECKPOINT_URL) + "/weights_manifest.json")
                                         .then(function (response) { return response.json(); })
                                         .then(function (manifest) {
                                         return tf.loadWeights(manifest, CHECKPOINT_URL);
