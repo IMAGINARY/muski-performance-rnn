@@ -17,6 +17,14 @@ export default class MuskiPerformanceRnnUi {
       .addClass('muski-performance-rnn-pad')
       .attr('id', 'input-pad')
       .append($('<div></div>')
+        .addClass('axis-label axis-label-y')
+        .text('⟵ loudness ⟶')
+      )
+      .append($('<div></div>')
+        .addClass('axis-label axis-label-x')
+        .text('⟵ number of notes ⟶')
+      )
+      .append($('<div></div>')
         .addClass('pointer')
       );
 

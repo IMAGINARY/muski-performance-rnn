@@ -114,3 +114,22 @@ body #roll {
 .ui-panel {
   display: none;
 }
+
+.axis-label {
+  position: absolute;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.axis-label-x {
+  text-anchor: middle;
+  text-align: center;
+  bottom: 0;
+  width: 100%;
+}
+
+.axis-label-y {
+  text-align: center;
+  height: 100%;
+  writing-mode: vertical-lr;
+}
