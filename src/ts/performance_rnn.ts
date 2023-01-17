@@ -470,9 +470,22 @@ export default async function init(options : any = {}) {
         }
     });
 
+    let adjustParamsTimeout : NodeJS.Timer = null;
+    let lastX : number = null;
+    let lastY : number = null;
     inputPad.addEventListener('pointermove', (e) => {
         if (e.pointerId === activePointerId) {
-            handlePointerMove(e.clientX, e.clientY);
+            // Adjust the parameters at most once every 200ms using a timer
+            // to avoid overloading the model.
+            lastX = e.clientX;
+            lastY = e.clientY;
+            handlePointerMove(lastX, lastY);
+            if (adjustParamsTimeout === null) {
+                adjustParamsTimeout = setTimeout(() => {
+                    adjustParameters(lastX, lastY);
+                    adjustParamsTimeout = null;
+                }, 200);
+            }
             adjustParameters(e.clientX, e.clientY);
         }
     });

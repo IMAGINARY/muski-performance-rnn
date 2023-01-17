@@ -38100,7 +38100,7 @@ function init(options) {
             inputPadPointer.style.left = clientX - rect.left + "px";
             inputPadPointer.style.top = clientY - rect.top + "px";
         }
-        var DEFAULT_PITCH_WEIGHTS, Piano, lstmKernel1, lstmBias1, lstmKernel2, lstmBias2, lstmKernel3, lstmBias3, c, h, fcB, fcW, forgetBias, activeNotes, stepTimeout, resetTimeout, STEPS_PER_GENERATE_CALL, GENERATION_BUFFER_SECONDS, MAX_GENERATION_LAG_SECONDS, MAX_NOTE_DURATION_SECONDS, NOTES_PER_OCTAVE, DENSITY_BIN_RANGES, PITCH_WEIGHT_SIZE, RESET_RNN_FREQUENCY_MS, pitchDistribution, noteDensityEncoding, currentPianoTimeSec, currentVelocity, MIN_MIDI_PITCH, MAX_MIDI_PITCH, VELOCITY_BINS, MAX_SHIFT_STEPS, STEPS_PER_SECOND, currentLoopId, EVENT_RANGES, EVENT_SIZE, PRIMER_IDX, lastSample, container, piano, SALAMANDER_URL, CHECKPOINT_URL, isDeviceSupported, modelReady, modelRunning, startButton, inputPad, inputPadPointer, densityControl, densityDisplay, gainSliderElement, gainDisplayElement, globalGain, densityMin, densityMax, gainSliderElementMin, gainSliderElementMax, activePointerId;
+        var DEFAULT_PITCH_WEIGHTS, Piano, lstmKernel1, lstmBias1, lstmKernel2, lstmBias2, lstmKernel3, lstmBias3, c, h, fcB, fcW, forgetBias, activeNotes, stepTimeout, resetTimeout, STEPS_PER_GENERATE_CALL, GENERATION_BUFFER_SECONDS, MAX_GENERATION_LAG_SECONDS, MAX_NOTE_DURATION_SECONDS, NOTES_PER_OCTAVE, DENSITY_BIN_RANGES, PITCH_WEIGHT_SIZE, RESET_RNN_FREQUENCY_MS, pitchDistribution, noteDensityEncoding, currentPianoTimeSec, currentVelocity, MIN_MIDI_PITCH, MAX_MIDI_PITCH, VELOCITY_BINS, MAX_SHIFT_STEPS, STEPS_PER_SECOND, currentLoopId, EVENT_RANGES, EVENT_SIZE, PRIMER_IDX, lastSample, container, piano, SALAMANDER_URL, CHECKPOINT_URL, isDeviceSupported, modelReady, modelRunning, startButton, inputPad, inputPadPointer, densityControl, densityDisplay, gainSliderElement, gainDisplayElement, globalGain, densityMin, densityMax, gainSliderElementMin, gainSliderElementMax, activePointerId, adjustParamsTimeout, lastX, lastY;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -38191,9 +38191,20 @@ function init(options) {
                             handlePointerOff();
                         }
                     });
+                    adjustParamsTimeout = null;
+                    lastX = null;
+                    lastY = null;
                     inputPad.addEventListener('pointermove', function (e) {
                         if (e.pointerId === activePointerId) {
-                            handlePointerMove(e.clientX, e.clientY);
+                            lastX = e.clientX;
+                            lastY = e.clientY;
+                            handlePointerMove(lastX, lastY);
+                            if (adjustParamsTimeout === null) {
+                                adjustParamsTimeout = setTimeout(function () {
+                                    adjustParameters(lastX, lastY);
+                                    adjustParamsTimeout = null;
+                                }, 200);
+                            }
                             adjustParameters(e.clientX, e.clientY);
                         }
                     });
