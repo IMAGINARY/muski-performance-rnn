@@ -1,3 +1,4 @@
+import '../sass/default.scss';
 import initPerformanceRnn from './performance_rnn';
 import MuskiPerformanceRnnUi from "./muski-performance-rnn-ui";
 
