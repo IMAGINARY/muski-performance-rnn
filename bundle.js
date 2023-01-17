@@ -37605,6 +37605,24 @@ if ((typeof module) == 'object' && module.exports) {
 }));
 },{}],108:[function(require,module,exports){
 "use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var strings = {
+    loudness: 'Lautstärke',
+    numberOfNotes: 'Anzahl der Noten',
+};
+exports.default = strings;
+
+},{}],109:[function(require,module,exports){
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+var strings = {
+    loudness: 'loudness',
+    numberOfNotes: 'number of notes',
+};
+exports.default = strings;
+
+},{}],110:[function(require,module,exports){
+"use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     return new (P || (P = Promise))(function (resolve, reject) {
         function fulfilled(value) { try { step(generator.next(value)); } catch (e) { reject(e); } }
@@ -37646,13 +37664,16 @@ var performance_rnn_1 = require("./performance_rnn");
 var muski_performance_rnn_ui_1 = require("./muski-performance-rnn-ui");
 $('[data-component="muski-performance-rnn-ui"]').each(function (i, el) {
     (function () { return __awaiter(_this, void 0, void 0, function () {
-        var $el, originalChildren, ui;
+        var lang, $el, originalChildren, ui;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
+                    lang = $(el).data('lang') || 'en';
                     $el = $(el);
                     originalChildren = $el.children();
-                    ui = new muski_performance_rnn_ui_1.default();
+                    ui = new muski_performance_rnn_ui_1.default({
+                        lang: lang,
+                    });
                     ui.$element.hide();
                     $el.append(ui.$element);
                     return [4, performance_rnn_1.default()];
@@ -37666,12 +37687,19 @@ $('[data-component="muski-performance-rnn-ui"]').each(function (i, el) {
     }); })();
 });
 
-},{"./muski-performance-rnn-ui":109,"./performance_rnn":110}],109:[function(require,module,exports){
+},{"./muski-performance-rnn-ui":111,"./performance_rnn":112}],111:[function(require,module,exports){
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
+var en_1 = require("./i18n/en");
+var de_1 = require("./i18n/de");
+var I18nStrings = {
+    en: en_1.default,
+    de: de_1.default,
+};
 var MuskiPerformanceRnnUi = (function () {
     function MuskiPerformanceRnnUi(options) {
         if (options === void 0) { options = {}; }
+        this.strings = I18nStrings[options['lang'] || 'en'];
         this.$element = $('<div></div>')
             .addClass('muski-performance-rnn-ui');
         this.$pad = $('<div></div>')
@@ -37679,10 +37707,10 @@ var MuskiPerformanceRnnUi = (function () {
             .attr('id', 'input-pad')
             .append($('<div></div>')
             .addClass('axis-label axis-label-y')
-            .text('⟵ loudness ⟶'))
+            .text("\u27F5 " + this.strings.loudness + " \u27F6"))
             .append($('<div></div>')
             .addClass('axis-label axis-label-x')
-            .text('⟵ number of notes ⟶'))
+            .text("\u27F5 " + this.strings.numberOfNotes + " \u27F6"))
             .append($('<div></div>')
             .addClass('pointer'));
         this.$noteDensityInput = $('<input />')
@@ -37763,7 +37791,7 @@ var MuskiPerformanceRnnUi = (function () {
 }());
 exports.default = MuskiPerformanceRnnUi;
 
-},{}],110:[function(require,module,exports){
+},{"./i18n/de":108,"./i18n/en":109}],112:[function(require,module,exports){
 "use strict";
 var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, generator) {
     return new (P || (P = Promise))(function (resolve, reject) {
@@ -38179,5 +38207,5 @@ function init() {
 }
 exports.default = init;
 
-},{"@tensorflow/tfjs-core":8,"tone-piano":106}]},{},[108])(108)
+},{"@tensorflow/tfjs-core":8,"tone-piano":106}]},{},[110])(110)
 });

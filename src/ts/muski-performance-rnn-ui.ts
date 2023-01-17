@@ -1,15 +1,27 @@
 /* globals $ */
+import StringsEn from './i18n/en';
+import StringsDe from './i18n/de';
+
+const I18nStrings : { [key: string]: { [key: string]: string } } = {
+  en: StringsEn,
+  de: StringsDe,
+};
+
 
 export default class MuskiPerformanceRnnUi {
   public $element: JQuery<HTMLElement>;
   public $pad: JQuery<HTMLElement>;
+  private strings: { [key: string]: string };
   private $noteDensityInput: JQuery<HTMLElement>;
   private $gainInput: JQuery<HTMLElement>;
   private $status: JQuery<HTMLElement>;
   private $startPauseButton: JQuery<HTMLElement>;
   private $resetButton: JQuery<HTMLElement>;
 
-  constructor(options : object = {}) {
+  constructor(options : any = {}) {
+
+    this.strings = I18nStrings[options['lang'] as string || 'en'];
+
     this.$element = $('<div></div>')
       .addClass('muski-performance-rnn-ui');
 
@@ -18,11 +30,11 @@ export default class MuskiPerformanceRnnUi {
       .attr('id', 'input-pad')
       .append($('<div></div>')
         .addClass('axis-label axis-label-y')
-        .text('⟵ loudness ⟶')
+        .text(`⟵ ${this.strings.loudness} ⟶`)
       )
       .append($('<div></div>')
         .addClass('axis-label axis-label-x')
-        .text('⟵ number of notes ⟶')
+        .text(`⟵ ${this.strings.numberOfNotes} ⟶`)
       )
       .append($('<div></div>')
         .addClass('pointer')
