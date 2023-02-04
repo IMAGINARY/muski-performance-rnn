@@ -1,6 +1,6 @@
 {
   "name": "muski-performance-rnn",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Adaptation of the Magenta Performance RNN model for Muski",
   "main": "index.js",
   "author": "Magenta",

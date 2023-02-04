@@ -117,7 +117,7 @@ export default async function init(options : any = {}) {
                 .then((response) => response.json())
                 .then(
                   (manifest: tf.WeightsManifestConfig) =>
-                    tf.loadWeights(manifest, CHECKPOINT_URL));
+                    tf.loadWeights(manifest, options.checkpointUrl || CHECKPOINT_URL));
           })
           .then((vars: { [varName: string]: tf.Tensor }) => {
               lstmKernel1 =
